@@ -1,0 +1,19 @@
+# webcheck http://127.0.0.1:8081 2026-11-03T23:02:07Z
+GET http://127.0.0.1:8081 -> 200
+Server: LabHTTPd/1.0
+Set-Cookie: session=lab-demo-session
+X-Powered-By: LabFramework/0.1
+Date: Tue, 03 Nov 2026 23:02:07 GMT
+Content-Length: 206
+Content-Type: text/html; charset=utf-8
+page title: "Lab Intranet Login", body bytes: 206
+CHECK absent header content-security-policy
+CHECK absent header x-frame-options
+CHECK absent header x-content-type-options
+Set-Cookie: session=<redacted>;
+CHECK password input served over plain HTTP
+baseline random path -> 404 (soft-404=false)
+GET /.git/HEAD -> 200
+GET /.env -> 200
+GET /server-status -> 404
+GET /phpinfo.php -> 404

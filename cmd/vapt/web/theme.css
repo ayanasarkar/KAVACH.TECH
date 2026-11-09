@@ -1,0 +1,32 @@
+/* KAVACH theme tokens. Deep red and white with pastel tints; light and dark. Every page reads these.
+   Colour pairs were checked for 4.5:1 text contrast. In dark mode --c-accent is a button fill only; links use --c-link. */
+:root,:root[data-theme="light"]{
+  color-scheme:light;
+  --c-bg:#fffaf9;--c-surface:#ffffff;--c-sunken:#fbf1ef;--c-hover:#f7e6e3;--c-user:#f9e3e1;
+  --c-line:#ecd9d6;--c-line2:#dcc0bc;
+  --c-text:#2b1517;--c-text2:#6a4e51;--c-text3:#80666a;
+  --c-accent:#8e1b2e;--c-accent-h:#6f1424;--c-on-accent:#ffffff;--c-link:#8e1b2e;
+  --c-soft:#f8dcdc;--c-soft-t:#7a1626;
+  --c-ok-bg:#dcf1e4;--c-ok:#1b5e3b;--c-warn-bg:#fcefcf;--c-warn:#6f4a00;--c-bad-bg:#fde2e2;--c-bad:#a31d2b;
+  --c-shadow:0 1px 2px #5a1a2214,0 8px 30px #5a1a2214;--c-scrim:#2b1517b3;
+  --c-sans:"IBM Plex Sans","Segoe UI",system-ui,Arial,sans-serif;--c-mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+  --c-serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;--c-deva:"Yatra One","Segoe UI",serif;
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --c-bg:#1a0f10;--c-surface:#231416;--c-sunken:#140b0c;--c-hover:#2d1b1d;--c-user:#3a2024;
+  --c-line:#3b2427;--c-line2:#52333a;
+  --c-text:#f6ebe9;--c-text2:#c9afb0;--c-text3:#a38a8c;
+  --c-accent:#c8374a;--c-accent-h:#d8505f;--c-on-accent:#ffffff;--c-link:#f4a9b1;
+  --c-soft:#3d1d22;--c-soft-t:#f4a9b1;
+  --c-ok-bg:#17342a;--c-ok:#8fe0b5;--c-warn-bg:#3b2d12;--c-warn:#f2cc7a;--c-bad-bg:#3d1b1f;--c-bad:#ff9aa3;
+  --c-shadow:0 1px 2px #0006,0 10px 34px #0007;--c-scrim:#000000b3;
+}
+.theme-btn{all:unset;box-sizing:border-box;cursor:pointer;width:34px;height:34px;border-radius:10px;display:inline-grid;place-items:center;color:var(--c-text2);transition:background .15s,color .15s}
+.theme-btn:hover,.theme-btn:focus-visible{background:var(--c-hover);color:var(--c-text)}
+.theme-btn:focus-visible{outline:2px solid var(--c-accent);outline-offset:2px}
+.theme-btn svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+:root[data-theme="light"] .theme-btn .i-moon,:root:not([data-theme]) .theme-btn .i-moon{display:block}
+:root[data-theme="light"] .theme-btn .i-sun,:root:not([data-theme]) .theme-btn .i-sun{display:none}
+:root[data-theme="dark"] .theme-btn .i-moon{display:none}
+:root[data-theme="dark"] .theme-btn .i-sun{display:block}

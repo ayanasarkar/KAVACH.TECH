@@ -1,0 +1,51 @@
+/* Chain menu: a hamburger that opens an index where every entry is a block of the real audit chain.
+   Shared by the landing page and the console. Colours come from the page's own custom properties. */
+.mn-btn{all:unset;box-sizing:border-box;cursor:pointer;display:inline-flex;align-items:center;gap:.6rem;padding:.55rem 1rem;border:1px solid var(--mn-ac,#ff8a1f);color:var(--mn-ac,#ff8a1f);font:600 .85rem/1 var(--mono,ui-monospace,Consolas,monospace);letter-spacing:.06em;text-transform:uppercase;transition:background .2s,color .2s}
+.mn-btn:hover,.mn-btn:focus-visible,.mn-btn[aria-expanded=true]{background:var(--mn-ac,#ff8a1f);color:var(--mn-ink,#1a0d00);outline:none}
+.mn-btn:focus-visible{outline:2px solid var(--mn-hi,#f2b827);outline-offset:3px}
+.mn-bars{position:relative;width:18px;height:12px;display:block}
+.mn-bars i{position:absolute;left:0;right:0;height:2px;background:currentColor;transition:transform .3s cubic-bezier(.2,.8,.2,1),top .3s,opacity .2s}
+.mn-bars i:nth-child(1){top:0}.mn-bars i:nth-child(2){top:5px}.mn-bars i:nth-child(3){top:10px}
+.mn-btn[aria-expanded=true] .mn-bars i:nth-child(1){top:5px;transform:rotate(45deg)}
+.mn-btn[aria-expanded=true] .mn-bars i:nth-child(2){opacity:0}
+.mn-btn[aria-expanded=true] .mn-bars i:nth-child(3){top:5px;transform:rotate(-45deg)}
+
+#mn{position:fixed;inset:0;z-index:40;display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);gap:0;background:var(--mn-bg,#0c0a14ee);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);color:var(--mn-fg,#efe6d2);font-family:var(--mono,ui-monospace,Consolas,monospace);visibility:hidden;opacity:0;transition:opacity .25s,visibility 0s .25s}
+#mn.open{visibility:visible;opacity:1;transition:opacity .25s}
+#mn *{box-sizing:border-box}
+#mn-x{all:unset;cursor:pointer;position:absolute;top:1rem;right:5vw;padding:.55rem 1rem;border:1px solid var(--mn-ac,#ff8a1f);color:var(--mn-ac,#ff8a1f);font:600 .85rem/1 var(--mono,monospace);letter-spacing:.06em;text-transform:uppercase}
+#mn-x:hover,#mn-x:focus-visible{background:var(--mn-ac,#ff8a1f);color:var(--mn-ink,#1a0d00);outline:none}
+#mn-list{list-style:none;margin:0;padding:max(11vh,4.5rem) 3vw 3vh 5vw;position:relative;overflow:auto;display:flex;flex-direction:column;justify-content:center}
+/* the chain rail that links the blocks */
+#mn-list::before{content:"";position:absolute;left:calc(5vw + 1.1rem);top:12vh;bottom:6vh;width:1px;background:linear-gradient(var(--mn-ac,#ff8a1f),var(--mn-dim,#a79db5)55%,transparent);opacity:.5}
+.mn-i{position:relative;margin:0;padding:0 0 0 3.2rem}
+.mn-i button,.mn-i a{all:unset;box-sizing:border-box;cursor:pointer;display:grid;grid-template-columns:2.2rem 1fr;align-items:baseline;width:100%;padding:.4rem .6rem .4rem 0;position:relative}
+.mn-i button:focus-visible,.mn-i a:focus-visible{outline:2px solid var(--mn-hi,#f2b827);outline-offset:2px}
+.mn-i::before{content:"";position:absolute;left:.7rem;top:.85rem;width:.85rem;height:.85rem;border:1.5px solid var(--mn-ac,#ff8a1f);background:var(--mn-bg2,#0c0a14);transition:background .2s,transform .3s}
+.mn-i.act::before,.mn-i:hover::before{background:var(--mn-ac,#ff8a1f);transform:rotate(45deg) scale(1.15)}
+.mn-i.mn-cur::after{content:"you are here";position:absolute;right:0;top:.7rem;font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;color:var(--mn-hi,#f2b827)}
+.mn-k{font-size:.72rem;letter-spacing:.1em;color:var(--mn-dim,#a79db5)}
+.mn-t{display:block;font:800 clamp(1.25rem,2.7vw,2.1rem)/1.15 var(--mn-sans,"Segoe UI Variable Display","Segoe UI",Arial,sans-serif);letter-spacing:-.02em;transition:transform .35s cubic-bezier(.2,.8,.2,1),color .2s}
+.mn-i.act .mn-t,.mn-i:hover .mn-t{color:var(--mn-hi,#f2b827);transform:translateX(.6rem)}
+.mn-h{grid-column:2;display:block;font-size:.72rem;color:var(--mn-dim,#a79db5);margin-top:.15rem;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mn-h b{font-weight:400;color:var(--mn-ac,#ff8a1f)}
+/* items rise in one after another, like blocks being mined */
+#mn.open .mn-i{animation:mnIn .5s cubic-bezier(.2,.8,.2,1) both;animation-delay:calc(var(--n)*55ms + 80ms)}
+@keyframes mnIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+
+#mn-side{border-left:1px solid var(--mn-line,#ff8a1f33);padding:max(11vh,4.5rem) 5vw 3vh 3vw;display:flex;flex-direction:column;justify-content:center;gap:1rem;overflow:auto;min-width:0}
+#mn-side h3{margin:0;font:700 .75rem/1 var(--mono,monospace);letter-spacing:.12em;text-transform:uppercase;color:var(--mn-dim,#a79db5)}
+#mn-pv{margin:0;font:13px/1.9 var(--mono,monospace);white-space:pre-wrap;overflow-wrap:anywhere;color:var(--mn-fg,#efe6d2);min-height:9em}
+#mn-pv b{color:var(--mn-hi,#f2b827);font-weight:400}
+#mn-pv .ok{color:var(--mn-ok,#1fc1b6)}#mn-pv .no{color:var(--mn-bad,#e23b36)}
+#mn-ft{margin:0;font-size:.72rem;color:var(--mn-dim,#a79db5);line-height:1.7}
+#mn-ft kbd{font:inherit;border:1px solid currentColor;padding:0 .35em;opacity:.85}
+@media(max-width:760px){
+  #mn{grid-template-columns:1fr;grid-template-rows:auto auto;overflow:auto}
+  #mn-list{padding:5rem 5vw 1rem}
+  #mn-list::before{left:calc(5vw + 1.1rem);top:5rem}
+  #mn-side{border-left:0;border-top:1px solid var(--mn-line,#ff8a1f33);padding:1rem 5vw 2rem}
+  .mn-t{font-size:1.35rem}
+  #mn-pv{min-height:0}
+}
+@media(prefers-reduced-motion:reduce){#mn,#mn.open{transition:none}#mn.open .mn-i{animation:none}.mn-t,.mn-i::before,.mn-bars i{transition:none}}
