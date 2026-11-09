@@ -19,7 +19,7 @@ Built strictly using the **Go standard library**, Kavach requires zero external 
 ## 👨‍💻 Team & Author
 
 * **Team Name:** `gh0st_1n_4he_sYstem`
-* **Author / Participant:** Ayana Sarkar (`ayanasarkar31@gmail.com`)
+* **Author / Participant:** Ayana Sarkar
 * **Hackathon:** DataOps Innovation Hackathon — *AI Agent for Automated Penetration Testing*
 
 ---
