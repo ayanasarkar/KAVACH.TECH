@@ -91,7 +91,7 @@ func Build(a *agent.Assessment) []byte {
 	for _, s := range []string{
 		"Authorisation reference: " + a.Scope.Authorization,
 		"Targets: " + strings.Join(a.Scope.Targets, ", ") + "; exclusions: " + orNone(a.Scope.Exclusions),
-		fmt.Sprintf("Lab-only addressing enforced: %s", yesNo(!a.Scope.AllowNonLab, "yes (loopback/private ranges only)", "no - organiser override recorded")),
+		addressingLine(a.Scope.AllowNonLab, a.Scope.AuthorizedDomains),
 		fmt.Sprintf("Port allow-list: %v; rate limit: %d requests/second (0 = unlimited)", orAny(a.Scope.Ports), a.Scope.MaxReqPerSec),
 		"Tools permitted: " + orAnyS(a.Scope.AllowedTools),
 		"Exploitation: never autonomous. Validation uses non-exploiting module checks only and requires explicit analyst approval, recorded in the audit trail.",

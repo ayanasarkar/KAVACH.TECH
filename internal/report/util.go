@@ -100,3 +100,19 @@ func firstS(s []string, n int) []string {
 	}
 	return s
 }
+
+// addressingLine states which addressing rule the scope guard actually enforced for this run. Three cases:
+// organiser override (any address), explicitly authorised public domains (public unicast only, private/loopback/
+// link-local refused at plan time and again at connect time), or the default lab-only rule.
+func addressingLine(allowNonLab bool, authorizedDomains []string) string {
+	switch {
+	case allowNonLab:
+		return "Addressing rule: organiser override recorded (non-lab addresses permitted for in-scope targets)"
+	case len(authorizedDomains) > 0:
+		return "Addressing rule: lab-only (loopback/private ranges) for IP targets; explicitly authorised domain(s) " +
+			strings.Join(authorizedDomains, ", ") +
+			" permitted only while they resolve to public addresses (private, loopback and link-local results refused at plan time and at connect time)"
+	default:
+		return "Addressing rule: lab-only enforced (loopback/private ranges only)"
+	}
+}

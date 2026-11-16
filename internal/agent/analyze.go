@@ -438,6 +438,11 @@ func (a *Assessment) ChatDetailed(ctx context.Context, msg string) ChatResult {
 		}
 	}
 	lm := strings.ToLower(msg)
+	// Questions about what to fix come before the generic "why" branch: "what is urgent to fix and why"
+	// contains "why" but asks for a prioritised list, not the tool-selection rationale.
+	if reply.Len() == 0 && urgentRe.MatchString(lm) {
+		reply.WriteString(urgentReply(a.Findings))
+	}
 	if reply.Len() == 0 && (strings.Contains(lm, "why") || strings.Contains(lm, "plan") || strings.Contains(lm, "tool")) {
 		reply.WriteString("Here is why each tool was chosen:\n")
 		for _, s := range a.Steps {
@@ -487,6 +492,27 @@ func (a *Assessment) ChatDetailed(ctx context.Context, msg string) ChatResult {
 		go a.loop(cctx, false)
 	}
 	return res
+}
+
+var urgentRe = regexp.MustCompile(`urgent|priorit|to fix|fix (first|next)|most (important|critical|serious)|highest risk|biggest risk|top risk`)
+
+// urgentReply lists the highest-risk findings. Findings are kept sorted by risk score (highest first), and every
+// number shown here is the one computed in code for that finding.
+func urgentReply(fs []model.Finding) string {
+	if len(fs) == 0 {
+		return "No findings were recorded, so there is nothing to prioritise. This does not prove the target is secure; see the limitations."
+	}
+	var b strings.Builder
+	n := len(fs)
+	if n > 5 {
+		n = 5
+	}
+	fmt.Fprintf(&b, "Fix these first (highest computed risk, %d of %d findings):\n", n, len(fs))
+	for _, f := range fs[:n] {
+		fmt.Fprintf(&b, "- %s [%s] %s: risk %.1f/100, %s, %s (observed by %s). Ask \"explain %s\" for the factors behind the score.\n",
+			f.ID, f.Risk.Priority, f.Title, f.Risk.Score, f.Severity, f.Status, strings.Join(f.Tools, ", "), f.ID)
+	}
+	return strings.TrimRight(b.String(), "\n")
 }
 
 func explainFinding(f model.Finding, evs []model.Evidence) string {
