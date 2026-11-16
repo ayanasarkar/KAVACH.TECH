@@ -4,3 +4,5 @@ data/
 
 kavach-state.json
 kavach-audit.jsonl
+
+*.exe

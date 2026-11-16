@@ -65,7 +65,7 @@ func TestGap_NmapIgnoresRateLimit(t *testing.T) {
 func TestGap_RunCmdHangsOnChildProcess(t *testing.T) {
 	start := time.Now()
 	_, _, _ = runCmd(context.Background(), 1*time.Second, "sh", "-c", "sleep 8 & wait")
-	if el := time.Since(start); el > 3*time.Second {
+	if el := time.Since(start); el > 5*time.Second { // 1s timeout + 2s WaitDelay + taskkill/Git Bash overhead on Windows; the hang this guards against is 8s
 		t.Errorf("HANG: a 1s timeout took %v because an orphaned child kept the output pipe open", el.Round(time.Millisecond))
 	}
 }
