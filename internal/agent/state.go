@@ -101,14 +101,15 @@ type Assessment struct {
 	FindingIDs  map[string]string            `json:"finding_ids,omitempty"` // finding key -> stable ID
 	Completed   time.Time                    `json:"completed,omitempty"`
 
-	mu     sync.Mutex
-	dir    string
-	log    *audit.Log
-	reg    *adapters.Registry
-	guard  *scope.Guard
-	llm    llm.Client
-	lim    *scope.Limiter
-	cancel func()
+	mu      sync.Mutex
+	dir     string
+	log     *audit.Log
+	reg     *adapters.Registry
+	guard   *scope.Guard
+	injSeen map[string]bool // instruction-like target text already audited
+	llm     llm.Client
+	lim     *scope.Limiter
+	cancel  func()
 
 	started bool     // Start is idempotent: a double-click must not launch a second planning loop
 	cancels []func() // cancel funcs of approved-validation runs, so Stop reaches them too

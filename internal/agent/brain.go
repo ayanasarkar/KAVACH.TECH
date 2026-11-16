@@ -75,7 +75,7 @@ func (a *Assessment) groundingContext() (string, map[string]bool) {
 		for _, id := range f.Evidence {
 			if e, ok := evByID[id]; ok && !seen[id] && len(evs) < 60 {
 				seen[id] = true
-				x := e.Excerpt
+				x := safeText(e.Excerpt)
 				if len(x) > 280 {
 					x = x[:280] + "…"
 				}

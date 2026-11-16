@@ -52,8 +52,10 @@ func inferenceOK(text string, cites []string, f *model.Finding, ev map[string]mo
 		if !own[c] {
 			return false
 		}
-		for _, cv := range adapters.FindCVEs(ev[c].Excerpt) {
-			known[cv] = true
+		if _, hostile := detectInjection(ev[c].Excerpt); !hostile { // target text cannot vouch for a CVE
+			for _, cv := range adapters.FindCVEs(ev[c].Excerpt) {
+				known[cv] = true
+			}
 		}
 	}
 	for _, c := range adapters.FindCVEs(text) {
@@ -102,7 +104,7 @@ func (a *Assessment) analyse(ctx context.Context) {
 			v.Assets = append(v.Assets, fmt.Sprintf("%s:%d", as.Host, as.Port))
 		}
 		for _, id := range f.Evidence {
-			v.Evidence[id] = clipS(ev[id].Excerpt, 220)
+			v.Evidence[id] = clipS(safeText(ev[id].Excerpt), 220)
 		}
 		view = append(view, v)
 	}

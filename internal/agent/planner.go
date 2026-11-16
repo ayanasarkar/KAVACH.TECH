@@ -142,7 +142,7 @@ func (a *Assessment) planContext() planCtx {
 		}
 	}
 	for _, s := range a.Services {
-		pc.Services = append(pc.Services, svcView{s.Host, s.Name, s.Product, clipS(s.Banner, 120), s.Tool, s.EvID, s.Port, s.State})
+		pc.Services = append(pc.Services, svcView{s.Host, s.Name, safeText(s.Product), clipS(safeText(s.Banner), 120), s.Tool, s.EvID, s.Port, s.State})
 	}
 	return pc
 }

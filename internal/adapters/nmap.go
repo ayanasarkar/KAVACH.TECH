@@ -73,14 +73,22 @@ func (*Nmap) Run(ctx context.Context, j Job) (Result, error) {
 		// The scope restricts ports: a default sweep must stay inside that list, never --top-ports.
 		args = append(args, "-p", strings.Join(intsToStr(j.AllowedPorts), ","))
 	default:
-		args = append(args, "--top-ports", "100")
+		// -p and --top-ports cannot be combined (-p wins), so the default sweep is one explicit list:
+		// nmap's own top 100 plus the agent's sweep list, so nmap covers every port the built-in scanner does.
+		list := sweepPorts(j.AllowPort)
+		if len(list) == 0 {
+			return Result{}, fmt.Errorf("no ports to scan after applying the scope port list")
+		}
+		args = append(args, "-p", strings.Join(intsToStr(list), ","))
 	}
 	if j.MaxReqPerSec > 0 {
 		args = append(args, "--max-rate", strconv.Itoa(j.MaxReqPerSec))
 	}
+	scripts := "banner" // raw greeting: -sV alone reports nothing for a product it does not recognise
 	if j.Options["scripts"] == "vulners" {
-		args = append(args, "--script", "vulners")
+		scripts = "banner,vulners"
 	}
+	args = append(args, "--script", scripts)
 	args = append(args, j.Host)
 	out, errOut, err := runCmd(ctx, 5*time.Minute, "nmap", args...)
 	if err != nil {
@@ -108,8 +116,18 @@ func (*Nmap) Run(ctx context.Context, j Job) (Result, error) {
 			}
 		}
 		for _, p := range h.Ports {
+			ident := strings.TrimSpace(p.Service.P + " " + p.Service.V + " " + p.Service.E)
+			banner := ident
+			for _, sc := range p.Scripts {
+				if sc.ID != "banner" {
+					continue
+				}
+				if raw := nmapBannerText(sc.Out); raw != "" && !strings.Contains(banner, raw) {
+					banner = strings.TrimSpace(banner + " " + raw)
+				}
+			}
 			s := model.Service{Host: j.Host, Port: p.ID, Proto: p.Proto, State: p.State.S, Name: p.Service.N, Product: p.Service.P, Version: p.Service.V, Tool: "nmap",
-				Banner: strings.TrimSpace(p.Service.P + " " + p.Service.V + " " + p.Service.E)}
+				Banner: banner}
 			res.Services = append(res.Services, s)
 			for _, sc := range p.Scripts {
 				if sc.ID != "vulners" {
@@ -121,7 +139,7 @@ func (*Nmap) Run(ctx context.Context, j Job) (Result, error) {
 						if cves := FindCVEs(tok); len(cves) == 1 && strings.EqualFold(tok, cves[0]) && i+1 < len(f) {
 							if sc, e := strconv.ParseFloat(f[i+1], 64); e == nil {
 								res.Findings = append(res.Findings, model.RawFinding{Tool: "nmap", Key: "cve:" + strings.ToLower(cves[0]),
-									Title: cves[0] + " reported for " + s.Banner, Host: j.Host, Port: p.ID, Proto: p.Proto, CVEs: cves,
+									Title: cves[0] + " reported for " + ident, Host: j.Host, Port: p.ID, Proto: p.Proto, CVEs: cves,
 									Severity: sevFromCVSS(sc), CVSS: fptr(sc), Basis: model.BasisVersion,
 									Description: "nmap's vulners script matched the detected product/version against a vulnerability database. This is a version match, not proof of exploitability.",
 									Excerpt:     strings.TrimSpace(l), RawRef: fmt.Sprintf("line %d", lineOf(cves[0]))})
@@ -149,6 +167,43 @@ func intsToStr(in []int) []string {
 		o = append(o, strconv.Itoa(i))
 	}
 	return o
+}
+
+// nmapTop100 is nmap's own --top-ports 100 list (nmap 7.94).
+var nmapTop100 = []int{7, 9, 13, 21, 22, 23, 25, 26, 37, 53, 79, 80, 81, 88, 106, 110, 111, 113, 119, 135, 139, 143, 144, 179, 199, 389, 427, 443, 444, 445, 465, 513, 514, 515, 543, 544, 548, 554, 587, 631, 646, 873, 990, 993, 995, 1025, 1026, 1027, 1028, 1029, 1110, 1433, 1720, 1723, 1755, 1900, 2000, 2001, 2049, 2121, 2717, 3000, 3128, 3306, 3389, 3986, 4899, 5000, 5009, 5051, 5060, 5101, 5190, 5357, 5432, 5631, 5666, 5800, 5900, 6000, 6001, 6646, 7070, 8000, 8008, 8009, 8080, 8081, 8443, 8888, 9100, 9999, 10000, 32768, 49152, 49153, 49154, 49155, 49156, 49157}
+
+// sweepPorts is the default nmap sweep: the agent's own list first, then nmap's top 100, without
+// duplicates and inside the scope's port allow-list.
+func sweepPorts(allow func(int) bool) []int {
+	seen := map[int]bool{}
+	var out []int
+	for _, list := range [][]int{topPorts, nmapTop100} {
+		for _, p := range list {
+			if seen[p] || (allow != nil && !allow(p)) {
+				continue
+			}
+			seen[p] = true
+			out = append(out, p)
+		}
+	}
+	return out
+}
+
+// nmapBannerText cleans the output of nmap's banner script. nmap hard-wraps script output at 63 columns,
+// which can split a word in two, so its newlines are layout: they are removed, not turned into spaces.
+// Control characters are dropped. nmap itself cuts long banners (about 130 characters).
+func nmapBannerText(s string) string {
+	s = strings.NewReplacer("\r", "", "\n", "").Replace(s)
+	s = strings.Map(func(r rune) rune {
+		switch {
+		case r == '\t':
+			return ' '
+		case r < 0x20 || r == 0x7f:
+			return -1
+		}
+		return r
+	}, s)
+	return strings.TrimSpace(s)
 }
 
 func sevFromCVSS(s float64) string {

@@ -27,11 +27,11 @@ func (*PortScan) Describe() string {
 }
 func (*PortScan) Available() (bool, string) { return true, "" }
 
-var topPorts = []int{21, 22, 23, 2121, 2222, 2323, 25, 53, 80, 110, 111, 135, 139, 143, 389, 443, 445, 465, 587, 993, 995,
+var topPorts = []int{21, 22, 23, 2121, 2222, 2323, 2525, 25, 53, 80, 110, 111, 135, 139, 143, 389, 443, 445, 465, 587, 993, 995,
 	1433, 1521, 2375, 3000, 3306, 3389, 5000, 5432, 5601, 5900, 5984, 6379, 7001, 8000, 8008, 8080, 8081,
 	8088, 8443, 8888, 9000, 9090, 9200, 11211, 27017}
 
-var portNames = map[int]string{21: "ftp", 22: "ssh", 23: "telnet", 25: "smtp", 53: "domain", 80: "http", 110: "pop3",
+var portNames = map[int]string{21: "ftp", 22: "ssh", 23: "telnet", 25: "smtp", 2525: "smtp", 53: "domain", 80: "http", 110: "pop3",
 	111: "rpcbind", 135: "msrpc", 139: "netbios-ssn", 143: "imap", 389: "ldap", 443: "https", 445: "microsoft-ds",
 	465: "smtps", 587: "submission", 993: "imaps", 995: "pop3s", 1433: "ms-sql-s", 1521: "oracle", 2375: "docker",
 	3306: "mysql", 3389: "ms-wbt-server", 5432: "postgresql", 5900: "vnc", 5984: "couchdb", 6379: "redis",

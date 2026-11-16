@@ -58,8 +58,8 @@ async function api(path, opts = {}) {
 // that session, never from a field in a request, so an approval is always recorded under the account that made it.
 let gateMode = 'login', gateBusy = false;
 const GATE = {
-  login: { h: 'Sign in', p: 'Every approval and denial is recorded in the tamper-evident audit log under your account.', go: 'Sign in', busy: 'Signing inâ€¦', note: 'Sessions end after 2 hours without activity.' },
-  setup: { h: 'Create your account', p: 'This is the first run, so this account becomes the administrator. It is stored only on this machine, and the password is kept as a salted hash.', go: 'Create account', busy: 'Creatingâ€¦', note: 'At least 10 characters, and not your username or a common word.' },
+  login: { h: 'Sign in', p: 'Every approval and denial is recorded in the tamper-evident audit log under your account.', go: 'Sign in', busy: 'Signing in…', note: 'Sessions end after 2 hours without activity.' },
+  setup: { h: 'Create your account', p: 'This is the first run, so this account becomes the administrator. It is stored only on this machine, and the password is kept as a salted hash.', go: 'Create account', busy: 'Creating…', note: 'At least 10 characters, and not your username or a common word.' },
 };
 function gateErr(msg) { const e = $('g-err'); e.textContent = msg || ''; e.hidden = !msg; }
 function setLocked(on) { $('side').inert = on; $('main').inert = on; }
@@ -134,7 +134,7 @@ async function enter() {
 }
 function badges() {
   const m = String(S.cfg.model || ''), rules = /rules-only/.test(m), p = $('b-model');
-  $('b-model-t').textContent = rules ? 'No model Â· rules only' : m.replace(/^openai-compatible:/, '');
+  $('b-model-t').textContent = rules ? 'No model · rules only' : m.replace(/^openai-compatible:/, '');
   if (rules) { p.className = 'pill ok'; p.title = 'Rules-only mode: nothing leaves this machine.'; }
   else if (S.cfg.data_leaves_machine) { p.className = 'pill warn'; p.title = 'Remote model: assessment evidence is sent to it when you chat.'; }
   else { p.className = 'pill ok'; p.title = 'Local model: assessment data stays on this machine.'; }
@@ -145,7 +145,7 @@ const form = () => ({ name: FI['f-name'].value, auth: FI['f-auth'].value, target
 function scopeSum() {
   if (S.id) return;
   const f = form(), nx = csv(f.excl).length;
-  $('sc-sum').textContent = `Scope: ${f.targets || 'none'}${nx ? ` Â· ${nx} excluded` : ''} Â· ${f.active ? 'active scans on' : 'passive only'}`;
+  $('sc-sum').textContent = `Scope: ${f.targets || 'none'}${nx ? ` · ${nx} excluded` : ''} · ${f.active ? 'active scans on' : 'passive only'}`;
 }
 Object.values(FI).forEach((i) => i.addEventListener('input', scopeSum));
 const scopeBtn = $('scope-btn');
@@ -209,25 +209,30 @@ async function startAssessment(text) {
     throw new Error('Replace the default authorization placeholder with the actual organiser-issued reference before starting.');
   }
 
-  const domains = [
-    'www.hackthecore.in',
-    'dataops.co.in'
-  ];
+  // Nothing is hardcoded: a host is assessed only if it is listed under "Hosts to
+  // assess" in the scope panel, and the scope guard still refuses it unless it is also
+  // covered by "Authorised targets" and (for a public domain) "Authorised domains".
+  const hosts = csv(f.hosts);
+  if (!hosts.length) {
+    throw new Error('Add at least one host under "Hosts to assess" in the scope panel.');
+  }
 
+  const targets = csv(f.targets);
+  const authorizedDomains = csv(f.authdom);
   const exclusions = csv(f.excl);
   const created = [];
 
   try {
     scopePop(false);
 
-    for (const host of domains) {
+    for (const host of hosts) {
       const body = {
         name: `${f.name || 'Assessment'} - ${host}`,
         authorization,
         request: text,
-        targets: [host],
+        targets,
         hosts: [host],
-        authorized_domains: [host],
+        authorized_domains: authorizedDomains,
         exclusions,
         allow_active: f.active,
         allow_exploit: f.exploit,
@@ -269,7 +274,7 @@ async function startAssessment(text) {
       loadRecent();
 
       throw new Error(
-        `${created.length} of ${domains.length} assessment(s) created. ` +
+        `${created.length} of ${hosts.length} assessment(s) created. ` +
         `Check the recent assessments and report links. ${error.message}`
       );
     }
@@ -324,7 +329,7 @@ function toEnd(force) { if (force) { const s = $('scroll'); s.scrollTop = s.scro
 function render() {
   const a = S.snap.assessment, wasNear = near();
   showEmpty(false);
-  $('t-title').textContent = a.request.length > 90 ? a.request.slice(0, 90) + 'â€¦' : a.request;
+  $('t-title').textContent = a.request.length > 90 ? a.request.slice(0, 90) + '…' : a.request;
   scopeBtn.classList.add('locked'); scopePop(false);
   $('sc-sum').textContent = 'In scope: ' + ((a.scope.targets || []).join(', ') || 'nothing');
   upsert('req', { t: a.request }, () => userTurn(a.request));
@@ -332,7 +337,7 @@ function render() {
   const steps = a.steps || [], rounds = [...new Set(steps.map((s) => s.round))].sort((x, y) => x - y), last = rounds[rounds.length - 1];
   rounds.forEach((r) => {
     const mine = steps.filter((s) => s.round === r), cur = r === last;
-    upsert('plan:' + r, { r, mine, ph: a.phase, cur, ev: cur ? (a.events || []).slice(-12) : null, lim: cur ? a.limitations : null, who: who() }, () => planCard(a, r, mine, cur));
+    upsert('plan:' + r, { r, mine, ph: a.phase, cur, ev: cur ? (a.events || []).slice(-12) : null, lim: cur ? a.limitations : null, inj: cur ? (a.events || []).filter((e) => e.level === 'warn' && String(e.text).indexOf('[PROMPT-INJECTION BLOCKED]') === 0).length : null, who: who() }, () => planCard(a, r, mine, cur));
   });
   if (a.messages && S.pending && a.messages.length > S.pending.base) { if (S.pending.node) S.pending.node.remove(); S.pending.node = null; }
   (a.messages || []).forEach((m, i) => upsert('msg:' + i, { m, x: S.extra.get(m.text) || null }, () => (m.role === 'analyst' ? userTurn(m.text) : agentTurn(m))));
@@ -405,23 +410,23 @@ function planCard(a, r, mine, cur) {
   const d = el('details', Object.assign({ class: 'card plan' }, open ? { open: '' } : {}),
     el('summary', {}, el('h3', {}, `Plan, round ${r + 1}`), el('span', { class: 'meta' }, `${done} of ${mine.length} steps done`), el('span', { class: 'chev' }, ic('chev', 18))));
   d.addEventListener('toggle', () => S.open.set(r, d.open));
-  const cb = el('div', { class: 'cb' }, el('div', { class: 'note' }, 'Each step was checked against the scope guard before it was proposed. The reasons are the agentâ€™s own; the guard verdicts are code.'), ...mine.map(stepRow));
+  const cb = el('div', { class: 'cb' }, el('div', { class: 'note' }, 'Each step was checked against the scope guard before it was proposed. The reasons are the agent’s own; the guard verdicts are code.'), ...mine.map(stepRow));
   if (waiting && prop.length) cb.append(approvalBlock(a, r, prop));
   if (cur) {
     const ev = (a.events || []).slice(-12);
     if (ev.length) cb.append(el('details', Object.assign({ class: 'lg' }, ACTIVE.has(a.phase) ? { open: '' } : {}), el('summary', {}, 'Activity'), el('div', { class: 'log' }, ev.map((e) => el('div', { class: e.level }, el('span', {}, fmtT(e.time)), el('span', {}, e.level === 'decision' ? [el('b', {}, 'Decision '), e.text] : e.text))))));
-    (a.limitations || []).forEach((l) => cb.append(el('div', { class: 'src warn' }, ic('alert', 14), l)));
+    (a.limitations || []).forEach((l) => cb.append(el('div', { class: 'src warn' }, ic('alert', 14), l))); (a.events || []).filter((e) => e.level === 'warn' && String(e.text).indexOf('[PROMPT-INJECTION BLOCKED]') === 0).forEach((e) => cb.append(el('div', { class: 'src warn' }, ic('alert', 14), e.text)));
   }
   d.append(cb); return d;
 }
 function stepRow(s) {
-  const g = s.guard ? (s.guard.allowed === false ? 'refused' : 'allowed') : 'unknown', dur = s.ended && s.started && s.status !== 'running' ? ` Â· ${Math.max(0, new Date(s.ended) - new Date(s.started))} ms` : '';
+  const g = s.guard ? (s.guard.allowed === false ? 'refused' : 'allowed') : 'unknown', dur = s.ended && s.started && s.status !== 'running' ? ` · ${Math.max(0, new Date(s.ended) - new Date(s.started))} ms` : '';
   const raw = (s.raw_file || '').split('/').pop();
   return el('div', { class: 'step', 'data-step': s.id }, stIcon(s),
     el('div', { class: 't1' }, VERB[s.tool] || s.tool, ' ', el('em', {}, 'on ' + hostShort(s.target))), el('span', { class: 'sid' }, s.id),
     el('div', { class: 'why' }, s.rationale || ''),
-    el('div', { class: 'meta' }, `${cap(s.status)}${dur} Â· guard ${g}${s.guard && s.guard.reason ? ' (' + s.guard.reason + ')' : ''} Â· proposed by ${s.proposed_by}${(s.trigger_evidence || []).length ? ' Â· because ' : ''}`, ...(s.trigger_evidence || []).flatMap((id, i) => [i ? ', ' : '', el('button', { class: 'ref', type: 'button', on: { click: () => gotoRef(id) } }, id)])),
-    s.summary ? el('div', { class: 'meta' }, s.summary, raw ? ' Â· ' : '', raw ? el('a', { href: `/api/assessments/${S.id}/raw/${raw}`, target: '_blank', rel: 'noopener' }, 'raw output') : null, s.raw_sha256 ? ' Â· sha256 ' + s.raw_sha256.slice(0, 12) + 'â€¦' : '') : null,
+    el('div', { class: 'meta' }, `${cap(s.status)}${dur} · guard ${g}${s.guard && s.guard.reason ? ' (' + s.guard.reason + ')' : ''} · proposed by ${s.proposed_by}${(s.trigger_evidence || []).length ? ' · because ' : ''}`, ...(s.trigger_evidence || []).flatMap((id, i) => [i ? ', ' : '', el('button', { class: 'ref', type: 'button', on: { click: () => gotoRef(id) } }, id)])),
+    s.summary ? el('div', { class: 'meta' }, s.summary, raw ? ' · ' : '', raw ? el('a', { href: `/api/assessments/${S.id}/raw/${raw}`, target: '_blank', rel: 'noopener' }, 'raw output') : null, s.raw_sha256 ? ' · sha256 ' + s.raw_sha256.slice(0, 12) + '…' : '') : null,
     s.error ? el('div', { class: 'err' }, s.error) : null);
 }
 
@@ -478,7 +483,7 @@ function findingsCard(a) {
     el('div', {}, shown.map((f) => el('button', { class: 'frow', type: 'button', on: { click: () => openProof(f.id) } },
       el('span', { class: 'sev ' + f.severity }, f.severity), el('span', { class: 'ft' }, f.id + '  ' + f.title),
       el('span', { class: 'mini' + (f.confidence < 0.6 ? ' low' : '') }, el('span', { class: 'bar' }, el('i', { style: `width:${pct(f.confidence)}%` })), pct(f.confidence) + '%'),
-      el('span', { class: 'fm' }, `${cap(f.status)} Â· ${(f.tools || []).join(', ')} Â· ${(f.assets || []).slice(0, 2).map((x) => x.host + ':' + x.port).join(', ')}`)))),
+      el('span', { class: 'fm' }, `${cap(f.status)} · ${(f.tools || []).join(', ')} · ${(f.assets || []).slice(0, 2).map((x) => x.host + ':' + x.port).join(', ')}`)))),
     el('div', { class: 'acts2' }, fs.length > 6 ? el('button', { class: 'lnk', type: 'button', on: { click: () => { S.showAll = !S.showAll; render(); } } }, S.showAll ? 'Show the top 6' : `Show all ${fs.length}`) : null,
       el('span', { class: 'src' }, 'Select a finding to see its proof. The percentage is an evidence-strength score, not a probability.')));
 }
@@ -501,7 +506,7 @@ function localCard(l) {
 }
 function thinking() {
   const a = S.snap && S.snap.assessment, ph = a && a.phase;
-  const txt = S.asking ? 'Reading this assessmentâ€™s evidenceâ€¦' : ph === 'planning' ? 'Planning: choosing tools from your request and the scopeâ€¦' : ph === 'running' ? 'Running approved stepsâ€¦' : ph === 'analysing' ? 'Correlating evidence across toolsâ€¦' : '';
+  const txt = S.asking ? 'Reading this assessment’s evidence…' : ph === 'planning' ? 'Planning: choosing tools from your request and the scope…' : ph === 'running' ? 'Running approved steps…' : ph === 'analysing' ? 'Correlating evidence across tools…' : '';
   $('thinking').hidden = !txt; $('th-t').textContent = txt; $('th-stop').hidden = ph !== 'running' || S.asking;
 }
 $('th-stop').addEventListener('click', () => api(`/api/assessments/${S.id}/stop`, { method: 'POST' }).then(poll).catch((e) => local({ kind: 'error', text: e.message })));
@@ -513,7 +518,7 @@ async function loadRecent() {
   const box = $('recent'); box.replaceChildren();
   if (!rows.length) { box.append(el('p', { class: 's-none' }, 'Nothing yet. Start one and it will appear here.')); return; }
   rows.forEach((r) => box.append(el('a', { href: '#', class: r.id === S.id ? 'on' : '', on: { click: (e) => { e.preventDefault(); openAssessment(r.id); } } },
-    el('b', {}, r.request.length > 42 ? r.request.slice(0, 42) + 'â€¦' : r.request), el('span', {}, `${PHASE[r.phase] || r.phase} Â· ${r.findings} finding${r.findings === 1 ? '' : 's'}`))));
+    el('b', {}, r.request.length > 42 ? r.request.slice(0, 42) + '…' : r.request), el('span', {}, `${PHASE[r.phase] || r.phase} · ${r.findings} finding${r.findings === 1 ? '' : 's'}`))));
 }
 function side(a) {
   const rp = $('l-report'); rp.hidden = !(a.findings || []).length; rp.href = `/api/assessments/${S.id}/report.pdf`;
@@ -522,20 +527,20 @@ function side(a) {
 async function chain(status, count, force) {
   $('r-chain').hidden = false;
   const t = $('r-chain-t'), rb = $('ribbon'), ok = status === 'verified';
-  t.textContent = ok ? `Verified by the server Â· ${count} blocks` : `Broken at block ${count}`; t.className = 's-cs ' + (ok ? 'ok' : 'bad'); rb.className = ok ? '' : 'bad';
+  t.textContent = ok ? `Verified by the server · ${count} blocks` : `Broken at block ${count}`; t.className = 's-cs ' + (ok ? 'ok' : 'bad'); rb.className = ok ? '' : 'bad';
   if (count === S.auditN && !force) return;
   const prev = S.auditN; S.auditN = count;
   try {
     const r = await api(`/api/assessments/${S.id}/audit`); S.auditE = r.entries || [];
     rb.replaceChildren(); const n = S.auditE.length, step = Math.max(1, Math.ceil(n / 96));
-    for (let i = 0; i < n; i += step) { const e = S.auditE[i]; const b = el('i', { title: `#${e.seq} ${e.type} by ${e.actor}\n${String(e.hash).slice(0, 16)}â€¦` }); if (prev >= 0 && i >= prev) b.className = 'fresh'; rb.append(b); }
+    for (let i = 0; i < n; i += step) { const e = S.auditE[i]; const b = el('i', { title: `#${e.seq} ${e.type} by ${e.actor}\n${String(e.hash).slice(0, 16)}…` }); if (prev >= 0 && i >= prev) b.className = 'fresh'; rb.append(b); }
   } catch { /* the ribbon is decoration; the status line is the truth */ }
 }
 async function reverify() {
   if (!S.id) return;
   try {
     const r = await api(`/api/assessments/${S.id}/audit`), ok = r.status === 'verified', n = (r.entries || []).length, head = n ? String(r.entries[n - 1].hash).slice(0, 16) : '-';
-    local({ kind: 'chain', ok, text: ok ? `The server recomputed every link: ${n} blocks, each hash chained to the one before it. Head ${head}â€¦` : `The server found a break in the chain (${r.status}).` }); await chain(r.status, n, true);
+    local({ kind: 'chain', ok, text: ok ? `The server recomputed every link: ${n} blocks, each hash chained to the one before it. Head ${head}…` : `The server found a break in the chain (${r.status}).` }); await chain(r.status, n, true);
   } catch (e) { local({ kind: 'error', text: e.message }); }
 }
 $('reverify').addEventListener('click', reverify);
@@ -547,7 +552,7 @@ async function openProof(id, hi) { if (!S.id) return; S.proofId = id; S.proofHi 
 function findingSig(a) { const f = (a.findings || []).find((x) => x.id === S.proofId); return f ? JSON.stringify([f.confidence, f.status, f.validation, (f.evidence || []).length, (f.notes || []).length, (a.approvals || []).map((p) => p.status).join()]) : ''; }
 function refreshProof(a) { const sg = findingSig(a); if (sg && sg !== S.proofSig) loadProof(false); }
 async function loadProof(scroll) {
-  const body = $('p-body'); if (scroll) body.replaceChildren(el('div', { class: 'src' }, 'Loading proofâ€¦'));
+  const body = $('p-body'); if (scroll) body.replaceChildren(el('div', { class: 'src' }, 'Loading proof…'));
   try {
     const r = await api(`/api/assessments/${S.id}/proof?finding=${encodeURIComponent(S.proofId)}`);
     S.proofSig = findingSig(S.snap.assessment); body.replaceChildren(...proofView(r.proof[0]));
@@ -559,19 +564,19 @@ function proofView(p) {
   const a = S.snap.assessment, s = p.strength, low = s.percent < 60, out = [];
   const rawLink = (ref) => { const m = /raw\/([A-Za-z0-9._-]+)/.exec(ref || ''); return m ? el('a', { href: `/api/assessments/${S.id}/raw/${m[1]}`, target: '_blank', rel: 'noopener' }, 'Open raw file') : null; };
   out.push(el('div', { class: 'ph' }, el('div', { class: 'row' }, el('span', { class: 'sev ' + p.severity }, p.severity), badge(cap(p.status), p.status === 'confirmed' ? 'ok' : p.status === 'likely_false_positive' ? 'bad' : 'warn'), badge('Validation: ' + cap(p.validation))),
-    el('h2', {}, p.finding + '  ' + p.title), el('div', { class: 'where' }, (p.assets || []).join(' Â· '))));
+    el('h2', {}, p.finding + '  ' + p.title), el('div', { class: 'where' }, (p.assets || []).join(' · '))));
   out.push(el('div', { class: 'sec' }, el('h3', {}, 'Evidence strength'),
     el('div', { class: 'meter' + (low ? ' low' : '') }, el('div', { class: 'num' }, s.percent + '%'), el('div', { class: 'rt' }, el('div', { class: 'track' }, el('i', { style: `width:${s.percent}%` })), el('div', { class: 'cap' }, `${cap(s.label)}. Basis: ${s.basis}.`))),
     el('p', { class: 'caveat' }, s.caveat), el('h3', { style: 'margin:14px 0 8px' }, 'How it was computed'), el('ol', { class: 'how' }, (s.how_computed || []).map((t) => el('li', {}, t)))));
   out.push(el('div', { class: 'sec' }, el('h3', {}, badge('Observed', 'ok'), el('small', {}, 'verbatim from the tools')),
-    (p.observed || []).length ? p.observed.map((o) => el('div', { class: 'ev', 'data-ev': o.evidence }, el('div', { class: 'eh' }, el('b', {}, o.evidence), el('span', {}, o.tool), el('span', {}, o.asset), el('span', {}, fmtT(o.time)), rawLink(o.raw_ref)), el('pre', {}, o.excerpt), el('div', { class: 'ef' }, 'Source ' + o.raw_ref + (o.raw_sha256 ? ' Â· sha256 ' + o.raw_sha256 : '')))) : el('div', { class: 'src warn' }, 'No stored evidence excerpt is attached to this finding.')));
+    (p.observed || []).length ? p.observed.map((o) => el('div', { class: 'ev', 'data-ev': o.evidence }, el('div', { class: 'eh' }, el('b', {}, o.evidence), el('span', {}, o.tool), el('span', {}, o.asset), el('span', {}, fmtT(o.time)), rawLink(o.raw_ref)), el('pre', {}, o.excerpt), el('div', { class: 'ef' }, 'Source ' + o.raw_ref + (o.raw_sha256 ? ' · sha256 ' + o.raw_sha256 : '')))) : el('div', { class: 'src warn' }, 'No stored evidence excerpt is attached to this finding.')));
   out.push(el('div', { class: 'sec' }, el('h3', {}, badge('Inferred', 'warn'), el('small', {}, 'reasoning, not observation')),
     (p.inferred || []).length ? p.inferred.map((i) => el('div', { class: 'infer' }, el('div', {}, refify(i.text)), el('div', { class: 'by' }, 'By ' + i.by))) : el('div', { class: 'src' }, 'Nothing is inferred beyond the observations above.')));
   if ((p.missing || []).length) out.push(el('div', { class: 'sec' }, el('h3', {}, badge('Not established', 'bad'), el('small', {}, 'what this record does not prove')), el('div', { class: 'miss' }, p.missing.map((m) => el('div', {}, m)))));
-  if (p.validated) out.push(el('div', { class: 'sec' }, el('h3', {}, 'Validation result'), el('div', { class: 'infer', style: 'border-color:var(--c-ok-bg)' }, el('div', {}, `${p.validated.module}: ${p.validated.verdict}`), el('div', { class: 'by' }, `Approved by ${p.validated.analyst || '-'} Â· evidence ${p.validated.evidence_id}`))));
+  if (p.validated) out.push(el('div', { class: 'sec' }, el('h3', {}, 'Validation result'), el('div', { class: 'infer', style: 'border-color:var(--c-ok-bg)' }, el('div', {}, `${p.validated.module}: ${p.validated.verdict}`), el('div', { class: 'by' }, `Approved by ${p.validated.analyst || '-'} · evidence ${p.validated.evidence_id}`))));
   else if (p.validation === 'pending_approval') out.push(el('div', { class: 'sec' }, el('h3', {}, 'Validation'), el('div', { class: 'src warn' }, 'A check is waiting for your approval in the conversation.')));
   else if (a.scope && a.scope.allow_exploit) {
-    const mod = el('input', { placeholder: 'Module path, for example auxiliary/scanner/â€¦', spellcheck: 'false' }), err = el('div', { class: 'errline' });
+    const mod = el('input', { placeholder: 'Module path, for example auxiliary/scanner/…', spellcheck: 'false' }), err = el('div', { class: 'errline' });
     out.push(el('div', { class: 'sec' }, el('h3', {}, 'Request a validation'), el('div', { class: 'vform' }, el('p', {}, 'This only creates a pending approval. Nothing runs until you approve it with a reason and the target typed back. The only method is a module check.'), mod,
       el('button', { class: 'btn sm', type: 'button', on: { click: async () => { try { await api(`/api/assessments/${S.id}/validate`, { json: { finding_id: p.finding, module: mod.value.trim() } }); await poll(); if (innerWidth <= 1100) showProof(false); } catch (e) { err.textContent = e.message; } } } }, 'Request validation'), err)));
   } else out.push(el('div', { class: 'sec' }, el('h3', {}, 'Validation'), el('div', { class: 'src' }, 'This scope does not permit validation requests.')));
@@ -641,12 +646,12 @@ function palItems(q) {
   if (q && looksAddr(q)) it.push({ t: `Check ${q} against the scope`, s: 'dry run, no traffic', run: () => guardCheck(q) });
   it.push({ t: 'New assessment', s: 'start a fresh conversation', run: newAssessment }, { t: 'Focus the message box', s: '/', run: () => $('cmd').focus() }, { t: 'Toggle light or dark mode', s: 'theme', run: () => document.querySelector('#top [data-theme-toggle]').click() });
   if (a) {
-    [...(a.findings || [])].sort((x, y) => (y.risk && y.risk.score || 0) - (x.risk && x.risk.score || 0)).forEach((f) => it.push({ t: `Proof: ${f.id} ${f.title}`, s: `${f.severity} Â· ${pct(f.confidence)}%`, run: () => openProof(f.id) }));
+    [...(a.findings || [])].sort((x, y) => (y.risk && y.risk.score || 0) - (x.risk && x.risk.score || 0)).forEach((f) => it.push({ t: `Proof: ${f.id} ${f.title}`, s: `${f.severity} · ${pct(f.confidence)}%`, run: () => openProof(f.id) }));
     it.push({ t: 'Re-verify the audit chain', s: 'the server recomputes every link', run: reverify });
     if ((a.findings || []).length) it.push({ t: 'Download the PDF report', s: '.pdf', run: () => { location.href = `/api/assessments/${S.id}/report.pdf`; } });
     if (a.phase === 'running') it.push({ t: 'Stop the run', s: 'cancels running steps', run: () => api(`/api/assessments/${S.id}/stop`, { method: 'POST' }).then(poll) });
   }
-  it.push({ t: 'Open the workbench', s: 'tiling view with 3D surface', run: () => { location.href = '/workbench'; } }, { t: 'Account and password', s: who() + ' Â· ' + (S.user ? S.user.role : ''), run: openAcct }, { t: 'Sign out', s: 'ends this session', run: signOut });
+  it.push({ t: 'Open the workbench', s: 'tiling view with 3D surface', run: () => { location.href = '/workbench'; } }, { t: 'Account and password', s: who() + ' · ' + (S.user ? S.user.role : ''), run: openAcct }, { t: 'Sign out', s: 'ends this session', run: signOut });
   const lq = (q || '').toLowerCase();
   return it.filter((x) => !lq || (looksAddr(q) && x.t.startsWith('Check ')) || x.t.toLowerCase().includes(lq) || (x.s || '').toLowerCase().includes(lq));
 }
@@ -701,8 +706,8 @@ initMenu({
   button: $('menu'),
   items: [{ label: 'Console', run: () => $('cmd').focus() }, { label: 'Workbench', href: '/workbench' }, { label: 'About KAVACH', href: '/' }, { label: 'Sample report (PDF)', href: 'sample/sample-vapt-report.pdf' }],
   preview: (it, i) => [['Talk to the agent. Plans, approvals, findings and proof appear as cards in the conversation.', '', 'Everything it states about your target comes from stored tool evidence.'], ['The tiling view: scope form, 3D surface, audit tab and tools matrix.'], ['KAVACH, the story.', '', 'It replays a recorded sample run.'], ['The report generated from the recorded sample run.']][i] || [],
-  sideTitle: 'sample run Â· recorded audit block',
-  footer: [{ kbd: 'm' }, ' toggle  ', { kbd: 'â†‘' }, { kbd: 'â†“' }, ' move  ', { kbd: 'esc' }, ' close'],
+  sideTitle: 'sample run · recorded audit block',
+  footer: [{ kbd: 'm' }, ' toggle  ', { kbd: '↑' }, { kbd: '↓' }, ' move  ', { kbd: 'esc' }, ' close'],
 });
 boot().catch((e) => { document.body.append(el('pre', { style: 'padding:20px;color:#a31d2b' }, 'Could not reach the agent: ' + e.message)); });
 

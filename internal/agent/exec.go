@@ -282,6 +282,8 @@ func (a *Assessment) ingest(st *Step, res adapters.Result) {
 			dropped[s.Host]++
 			continue
 		}
+		a.flagInjection(s.Host, s.Port, s.Tool, "banner", s.Banner)
+		a.flagInjection(s.Host, s.Port, s.Tool, "product", s.Product)
 		if s.State == "open" {
 			e := model.Evidence{ID: a.newEvidenceID(), Tool: s.Tool, Asset: fmt.Sprintf("%s:%d", s.Host, s.Port), Time: time.Now().UTC(),
 				RawRef: ref("service record"), Excerpt: fmt.Sprintf("%s:%d/%s open service=%s product=%q banner=%q", s.Host, s.Port, s.Proto, s.Name, s.Product, s.Banner), RunID: st.ID}
@@ -303,6 +305,7 @@ func (a *Assessment) ingest(st *Step, res adapters.Result) {
 			dropped[f.Host]++
 			continue
 		}
+		a.flagInjection(f.Host, f.Port, f.Tool, "tool output", f.Excerpt)
 		e := model.Evidence{ID: a.newEvidenceID(), Tool: f.Tool, Asset: fmt.Sprintf("%s:%d", f.Host, f.Port), Time: time.Now().UTC(), RawRef: ref(f.RawRef), Excerpt: f.Excerpt, RunID: st.ID}
 		a.Evidence = append(a.Evidence, e)
 		f.Evidence = e.ID

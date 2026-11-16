@@ -145,7 +145,7 @@ async function poll() {
   $('b-phase').textContent = PHASE[a.phase] || a.phase;
   const ab = $('b-audit'); const ok = S.snap.audit_status === 'verified';
   ab.textContent = ok ? `audit ${S.snap.audit_count} verified` : `audit BROKEN at ${S.snap.audit_count}`; ab.className = ok ? 'ok' : 'bad';
-  $('st-left').textContent = `${S.id}  Â·  ${PHASE[a.phase] || a.phase}  Â·  ${(a.findings || []).length} findings  Â·  ${(a.evidence || []).length} evidence`;
+  $('st-left').textContent = `${S.id}  ·  ${PHASE[a.phase] || a.phase}  ·  ${(a.findings || []).length} findings  ·  ${(a.evidence || []).length} evidence`;
   mergeLog(a);
   if (S.snap.audit_count !== S.auditCount) await loadAudit(false);
   surface.setData({ hosts: a.hosts || [], services: a.services || [], findings: a.findings || [], steps: a.steps || [], refused: refusedList(a),
@@ -219,7 +219,7 @@ function renderPlan(a) {
   const steps = a.steps || [], waiting = a.phase === 'awaiting_approval';
   const prop = steps.filter((s) => s.status === 'proposed');
   v.append(el('h1', { class: 'hd' }, waiting ? 'Nothing runs until you approve.' : a.phase === 'review' ? 'Run complete.' : 'The plan.'),
-    el('p', { class: 'sub' }, `Round ${a.round} Â· up to 4 rounds. Every step below was checked against the scope guard first.`));
+    el('p', { class: 'sub' }, `Round ${a.round} · up to 4 rounds. Every step below was checked against the scope guard first.`));
   if (waiting && prop.length) {
     const one = prop.length === 1 ? prop[0] : null;
     const head = one ? `${VERB[one.tool] || 'Run ' + one.tool + ' on'} ${hostShort(one.target)}` : `Run ${prop.length} steps (${[...new Set(prop.map((s) => s.tool))].join(', ')})`;
@@ -230,10 +230,10 @@ function renderPlan(a) {
     hold.addEventListener('keyup', holdStop);
     const deny = el('button', { class: 'deny', id: 'deny-btn', type: 'button', on: { click: denyPlan } }, 'Deny ', el('kbd', {}, 'D'));
     v.append(el('section', { class: 'apv' },
-      el('div', { class: 'k' }, `Approval required Â· round ${a.round} Â· ${prop.length} step${prop.length === 1 ? '' : 's'}`),
+      el('div', { class: 'k' }, `Approval required · round ${a.round} · ${prop.length} step${prop.length === 1 ? '' : 's'}`),
       el('h2', {}, head),
       ...prop.map((s) => el('div', { class: 'cmdl' }, `${s.tool}  ${hostShort(s.target)}  ${s.options && Object.keys(s.options).length ? JSON.stringify(s.options) : ''}`)),
-      el('div', { class: 'chks' }, ...guardChecks(a, prop).map((t) => el('span', {}, 'âœ“ ' + t))),
+      el('div', { class: 'chks' }, ...guardChecks(a, prop).map((t) => el('span', {}, '✓ ' + t))),
       el('div', { class: 'acts' }, hold, deny, el('span', { class: 'rel' }, 'Release early to cancel.'))));
   } else if (['running', 'planning', 'analysing'].includes(a.phase)) {
     v.append(el('div', { class: 'acts run' }, el('button', { class: 'deny', type: 'button', on: { click: () => api(`/api/assessments/${S.id}/stop`, { method: 'POST' }) } }, 'Stop'), el('span', { class: 'rel' }, PHASE[a.phase] + '...')));
@@ -248,8 +248,8 @@ function renderPlan(a) {
         el('span', { class: g === 'allowed' ? 'c-green' : 'c-red' }, g),
         el('span', { class: 'st-' + s.status }, s.status.replace(/_/g, ' ') + dur)),
         el('div', { class: 'why' }, s.rationale || ''),
-        el('div', { class: 'meta' }, `guard: ${s.guard && s.guard.reason || '-'} Â· by ${s.proposed_by} Â· round ${s.round}` + (s.trigger_evidence ? ' Â· because ' + s.trigger_evidence.join(',') : '')),
-        s.summary ? el('div', { class: 'meta' }, s.summary + (s.raw_file ? ' Â· ' : ''), s.raw_file ? el('a', { href: `/api/assessments/${S.id}/raw/${s.raw_file.split('/').pop()}`, target: '_blank', rel: 'noopener' }, 'raw') : null, s.raw_sha256 ? ' sha256:' + s.raw_sha256.slice(0, 10) : '') : null,
+        el('div', { class: 'meta' }, `guard: ${s.guard && s.guard.reason || '-'} · by ${s.proposed_by} · round ${s.round}` + (s.trigger_evidence ? ' · because ' + s.trigger_evidence.join(',') : '')),
+        s.summary ? el('div', { class: 'meta' }, s.summary + (s.raw_file ? ' · ' : ''), s.raw_file ? el('a', { href: `/api/assessments/${S.id}/raw/${s.raw_file.split('/').pop()}`, target: '_blank', rel: 'noopener' }, 'raw') : null, s.raw_sha256 ? ' sha256:' + s.raw_sha256.slice(0, 10) : '') : null,
         s.error ? el('div', { class: 'err' }, s.error) : null].filter(Boolean));
     });
     v.append(T);
@@ -269,17 +269,17 @@ function renderFindings(a) {
   if (a.summary) v.append(el('div', { class: 'box ai' }, el('span', { class: 'lbl ai' }, `[${a.summary_by === 'rules' ? 'rules' : 'ai'}] summary `), a.summary));
   const flt = el('div', { class: 'flt' }, el('span', { class: 'dim' }, 'filter'));
   ['critical', 'high', 'medium', 'low', 'info'].forEach((s) => flt.append(el('button', { class: 'chip ' + (S.sevFilter === s ? 'on' : ''), on: { click: () => { S.sevFilter = S.sevFilter === s ? '' : s; S.sel = 0; renderFindings(a); } } }, s)));
-  if (S.hostFilter) flt.append(el('button', { class: 'chip on', on: { click: () => { S.hostFilter = ''; S.sel = 0; renderFindings(a); } } }, 'host:' + S.hostFilter + ' Ã—'));
+  if (S.hostFilter) flt.append(el('button', { class: 'chip on', on: { click: () => { S.hostFilter = ''; S.sel = 0; renderFindings(a); } } }, 'host:' + S.hostFilter + ' ×'));
   v.append(flt);
   if (!fs.length) { v.append(el('p', { class: 'dim' }, (a.findings || []).length ? 'no findings match the filter' : 'no findings yet')); return; }
   S.sel = Math.min(S.sel, fs.length - 1);
   v.append(el('div', { class: 'frow fhead' }, el('span'), el('span', {}, 'id'), el('span', {}, 'pri'), el('span', {}, 'risk'), el('span', {}, 'sev'), el('span', {}, 'finding / assets / status')));
   fs.forEach((f, i) => {
     const row = el('div', { class: 'frow' + (i === S.sel ? ' sel' : ''), 'data-i': i, on: { click: () => { S.sel = i; openFinding(f.id); } } },
-      el('span', { class: 'cur' }, i === S.sel ? 'â–Œ' : ''), el('span', { class: 'dim' }, f.id), el('span', { class: f.risk.priority === 'P1' ? 'c-crit' : 'dim' }, f.risk.priority), el('span', {}, f.risk.score.toFixed(0)),
+      el('span', { class: 'cur' }, i === S.sel ? '▌' : ''), el('span', { class: 'dim' }, f.id), el('span', { class: f.risk.priority === 'P1' ? 'c-crit' : 'dim' }, f.risk.priority), el('span', {}, f.risk.score.toFixed(0)),
       el('span', { class: 'sev-' + f.severity }, { critical: 'crit', medium: 'med' }[f.severity] || f.severity), el('span', { class: 'ttl' }, f.title));
     v.append(row, el('div', { class: 'frow', on: { click: () => { S.sel = i; openFinding(f.id); } } }, el('span'), el('span'), el('span'), el('span'), el('span'),
-      el('span', { class: 'sub' }, (f.assets || []).map((x) => x.host + ':' + x.port).join(', ') + ' Â· ', el('span', { class: 'st-' + f.status }, f.status.replace(/_/g, ' ')), ' Â· ' + f.confidence_label + ' ' + Math.round(f.confidence * 100) + '% Â· ' + (f.tools || []).join('+'))));
+      el('span', { class: 'sub' }, (f.assets || []).map((x) => x.host + ':' + x.port).join(', ') + ' · ', el('span', { class: 'st-' + f.status }, f.status.replace(/_/g, ' ')), ' · ' + f.confidence_label + ' ' + Math.round(f.confidence * 100) + '% · ' + (f.tools || []).join('+'))));
   });
 }
 
@@ -288,7 +288,7 @@ function rawLink(ref) { const m = /raw\/([A-Za-z0-9._-]+)/.exec(ref || ''); retu
 function openFinding(id, silent) {
   const a = S.snap && S.snap.assessment; const f = a && (a.findings || []).find((x) => x.id === id); if (!f) return;
   S.openId = id; const ev = Object.fromEntries((a.evidence || []).map((e) => [e.id, e]));
-  $('drawer-title').textContent = `${f.id} :: ${f.title.length > 60 ? f.title.slice(0, 59) + 'â€¦' : f.title}`;
+  $('drawer-title').textContent = `${f.id} :: ${f.title.length > 60 ? f.title.slice(0, 59) + '…' : f.title}`;
   const b = clear($('drawer-body'));
   b.append(el('div', {}, el('span', { class: 'sev-' + f.severity }, f.severity.toUpperCase()), `  priority ${f.risk.priority}  risk ${f.risk.score.toFixed(1)}/100  `, el('span', { class: 'st-' + f.status }, f.status.replace(/_/g, ' ')), `  confidence ${f.confidence_label} ${Math.round(f.confidence * 100)}%`),
     el('div', { class: 'box obs' }, el('div', { class: 'lbl obs' }, '[obs] observed, from tool output'), el('div', {}, f.description),
@@ -339,7 +339,7 @@ function renderTools() {
 
 // ---------- prompt ----------
 const HELP = ['commands:', '  <anything>        ask the agent ("why S-02?", "explain F-001", name another host)', '  check <target>    dry-run the scope guard on a target and watch it hit the shield (audited, runs nothing)',
-  '  approve           approve the waiting plan', '  open <F-001>      open a findingâ€™s evidence', '  goto <ws>         scope | plan | findings | approvals | audit | tools', '  pdf               download the report', '  clear             clear this log'];
+  '  approve           approve the waiting plan', '  open <F-001>      open a finding’s evidence', '  goto <ws>         scope | plan | findings | approvals | audit | tools', '  pdf               download the report', '  clear             clear this log'];
 $('prompt').addEventListener('submit', async (e) => {
   e.preventDefault(); const raw = $('cmd').value.trim(); if (!raw) return; $('cmd').value = '';
   const [c, ...rest] = raw.split(/\s+/), arg = rest.join(' ');
