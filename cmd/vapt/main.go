@@ -59,6 +59,15 @@ func main() {
 	}
 	s := &server{env: agent.Env{DataDir: *data, Reg: adapters.NewRegistry(), LLM: llm.FromEnv()}, token: hex.EncodeToString(tok), auth: st, items: map[string]*agent.Assessment{}}
 	s.listenHost = hostOnly(*addr)
+	// Reload assessments saved by earlier runs so the history survives a restart.
+	loaded, problems := agent.RestoreAll(s.env)
+	for _, a := range loaded {
+		s.items[a.ID] = a
+	}
+	log.Printf("history: restored %d earlier assessment(s) from %s", len(loaded), *data)
+	for _, p := range problems {
+		log.Printf("history: skipped %s", p)
+	}
 	// Scripted runs (demo.sh, CI) can create the first administrator from the environment. Interactive use does it in the console.
 	if u, p := os.Getenv("KAVACH_ADMIN_USER"), os.Getenv("KAVACH_ADMIN_PASSWORD"); u != "" && p != "" && !st.HasUsers() {
 		if _, err := st.Setup(u, "", p); err != nil {
