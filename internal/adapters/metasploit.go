@@ -41,6 +41,9 @@ func (*Metasploit) Run(ctx context.Context, j Job) (Result, error) {
 		cmdline += fmt.Sprintf("set RPORT %d; ", j.Port)
 	}
 	cmdline += "check; exit"
+	if ok, _ := have("msfconsole"); !ok {
+		return msfMissingResult(j, mod), nil
+	}
 	out, errOut, err := runCmd(ctx, 4*time.Minute, "msfconsole", "-q", "-x", cmdline)
 	res := Result{Raw: out + errOut}
 	if err != nil {

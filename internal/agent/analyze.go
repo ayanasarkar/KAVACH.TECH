@@ -268,6 +268,9 @@ func rulesSummary(fs []model.Finding, lims []string) string {
 
 // RequestValidation lets an analyst propose a lab-only `check` validation.
 func (a *Assessment) RequestValidation(findingID, module, analyst string) (*Approval, error) {
+	if err := validateModuleRequest(module); err != nil {
+		return nil, err
+	}
 	a.mu.Lock()
 	defer a.mu.Unlock()
 	var f *model.Finding
