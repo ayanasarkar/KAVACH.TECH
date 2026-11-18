@@ -49,23 +49,49 @@ func (*Metasploit) Run(ctx context.Context, j Job) (Result, error) {
 	if err != nil {
 		return res, err
 	}
-	v := &Validation{Verdict: "undetermined", Module: mod}
-	for _, l := range strings.Split(out, "\n") {
-		ll := strings.ToLower(l)
-		switch {
-		case strings.Contains(ll, "appears to be vulnerable") || strings.Contains(ll, "is vulnerable"):
-			v.Verdict, v.Line = "vulnerable", strings.TrimSpace(l)
-		case strings.Contains(ll, "not exploitable") || strings.Contains(ll, "is not vulnerable") || strings.Contains(ll, "safe"):
-			if v.Verdict != "vulnerable" {
-				v.Verdict, v.Line = "not_vulnerable", strings.TrimSpace(l)
-			}
-		case strings.Contains(ll, "cannot reliably check") || strings.Contains(ll, "cannot be determined"):
-			if v.Line == "" {
-				v.Line = strings.TrimSpace(l)
-			}
-		}
-	}
+	v := classifyCheck(out)
+	v.Module = mod
 	res.Validation = v
 	res.Summary = fmt.Sprintf("msf check %s on %s: %s", mod, j.Host, v.Verdict)
 	return res, nil
+}
+
+// classifyCheck turns msfconsole `check` output into a verdict. It trusts only Metasploit's own check-result
+// phrases and treats everything else as undetermined, because a wrong "not vulnerable" lowers confidence in a real
+// finding and a wrong "vulnerable" confirms one that was never confirmed. Deliberately not matched: the bare word
+// "safe" (it appears in unrelated lines such as "safe checks" or "unsafe"), and any line a module phrases in its own
+// words. If vulnerable and not-vulnerable lines both appear, the output contradicts itself and the verdict is
+// undetermined rather than whichever line came first.
+func classifyCheck(out string) *Validation {
+	v := &Validation{Verdict: "undetermined"}
+	var pos, neg, note string
+	for _, l := range strings.Split(out, "\n") {
+		ll := strings.ToLower(strings.TrimSpace(l))
+		switch {
+		case strings.Contains(ll, "is not exploitable") || strings.Contains(ll, "is not vulnerable"):
+			if neg == "" {
+				neg = strings.TrimSpace(l)
+			}
+		case strings.Contains(ll, "appears to be vulnerable") || strings.Contains(ll, "is vulnerable"):
+			if pos == "" {
+				pos = strings.TrimSpace(l)
+			}
+		case strings.Contains(ll, "cannot reliably check") || strings.Contains(ll, "cannot be determined") ||
+			strings.Contains(ll, "could not be validated") || strings.Contains(ll, "does not support check"):
+			if note == "" {
+				note = strings.TrimSpace(l)
+			}
+		}
+	}
+	switch {
+	case pos != "" && neg != "":
+		v.Line = "contradictory check output: " + pos + " | " + neg
+	case pos != "":
+		v.Verdict, v.Line = "vulnerable", pos
+	case neg != "":
+		v.Verdict, v.Line = "not_vulnerable", neg
+	default:
+		v.Line = note
+	}
+	return v
 }
