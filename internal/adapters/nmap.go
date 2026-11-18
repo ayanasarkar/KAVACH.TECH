@@ -129,6 +129,12 @@ func (*Nmap) Run(ctx context.Context, j Job) (Result, error) {
 			s := model.Service{Host: j.Host, Port: p.ID, Proto: p.Proto, State: p.State.S, Name: p.Service.N, Product: p.Service.P, Version: p.Service.V, Tool: "nmap",
 				Banner: banner}
 			res.Services = append(res.Services, s)
+			if s.State == "open" {
+				excerpt := fmt.Sprintf("%s:%d/%s open service=%s product=%q", s.Host, s.Port, s.Proto, s.Name, s.Product)
+				if f, ok := exposureFinding("nmap", s, excerpt, fmt.Sprintf("line %d", lineOf(fmt.Sprintf("portid=\"%d\"", p.ID)))); ok {
+					res.Findings = append(res.Findings, f)
+				}
+			}
 			for _, sc := range p.Scripts {
 				if sc.ID != "vulners" {
 					continue

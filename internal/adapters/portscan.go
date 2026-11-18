@@ -125,28 +125,8 @@ func (*PortScan) Run(ctx context.Context, j Job) (Result, error) {
 		}
 		ref := fmt.Sprintf("line %d", line[s.Port])
 		excerpt := fmt.Sprintf("%s:%d/tcp open service=%s banner=%q", s.Host, s.Port, s.Name, s.Banner)
-		switch s.Name {
-		case "telnet":
-			res.Findings = append(res.Findings, model.RawFinding{Tool: "portscan", Key: "net:cleartext:telnet",
-				Title: "Telnet service exposed (cleartext remote administration)", Host: s.Host, Port: s.Port, Proto: "tcp",
-				Severity: "high", Basis: model.BasisDirect, CWEs: []string{"CWE-319"}, OWASP: "A02:2021 Cryptographic Failures",
-				Description: "A Telnet service accepted a TCP connection. Telnet transmits credentials and session data without encryption.",
-				Remediation: "Disable Telnet and use SSH with key-based authentication. Restrict management ports to an admin network.",
-				References:  []string{"https://cwe.mitre.org/data/definitions/319.html"}, Excerpt: excerpt, RawRef: ref})
-		case "ftp":
-			res.Findings = append(res.Findings, model.RawFinding{Tool: "portscan", Key: "net:cleartext:ftp",
-				Title: "FTP service exposed (cleartext file transfer)", Host: s.Host, Port: s.Port, Proto: "tcp",
-				Severity: "medium", Basis: model.BasisDirect, CWEs: []string{"CWE-319"}, OWASP: "A02:2021 Cryptographic Failures",
-				Description: "An FTP service accepted a TCP connection. Plain FTP transmits credentials and data without encryption.",
-				Remediation: "Replace FTP with SFTP or FTPS and disable anonymous access unless explicitly required.",
-				References:  []string{"https://cwe.mitre.org/data/definitions/319.html"}, Excerpt: excerpt, RawRef: ref})
-		case "redis", "memcached", "mongodb", "elasticsearch", "couchdb", "mysql", "postgresql", "ms-sql-s", "docker":
-			res.Findings = append(res.Findings, model.RawFinding{Tool: "portscan", Key: "net:exposed-datastore:" + s.Name,
-				Title: fmt.Sprintf("Data service %s reachable over the network", s.Name), Host: s.Host, Port: s.Port, Proto: "tcp",
-				Severity: "medium", Basis: model.BasisDirect, CWEs: []string{"CWE-284"}, OWASP: "A05:2021 Security Misconfiguration",
-				Description: "A database/management service accepted a TCP connection from the assessment host. Whether authentication is enforced was NOT tested by this check.",
-				Remediation: "Bind data services to localhost or a private management network, require authentication and restrict access with host firewalls.",
-				Excerpt:     excerpt, RawRef: ref})
+		if f, ok := exposureFinding("portscan", s, excerpt, ref); ok {
+			res.Findings = append(res.Findings, f)
 		}
 		if s.Banner != "" && (strings.Contains(strings.ToLower(s.Banner), "/") || strings.ContainsAny(s.Banner, "0123456789")) && s.Name != "http" && s.Name != "https" {
 			res.Findings = append(res.Findings, model.RawFinding{Tool: "portscan", Key: fmt.Sprintf("net:banner-disclosure:%s", s.Name),
@@ -210,6 +190,35 @@ func probe(ctx context.Context, j Job, port int) model.Service {
 		s.Name = "unknown"
 	}
 	return s
+}
+
+// exposureFinding applies the cleartext-service and exposed-data-service rules to one open service.
+// Both scanners use it, so a Telnet or FTP service is reported the same way whichever tool found it.
+func exposureFinding(tool string, s model.Service, excerpt, ref string) (model.RawFinding, bool) {
+	switch s.Name {
+	case "telnet":
+		return model.RawFinding{Tool: tool, Key: "net:cleartext:telnet",
+			Title: "Telnet service exposed (cleartext remote administration)", Host: s.Host, Port: s.Port, Proto: "tcp",
+			Severity: "high", Basis: model.BasisDirect, CWEs: []string{"CWE-319"}, OWASP: "A02:2021 Cryptographic Failures",
+			Description: "A Telnet service accepted a TCP connection. Telnet transmits credentials and session data without encryption.",
+			Remediation: "Disable Telnet and use SSH with key-based authentication. Restrict management ports to an admin network.",
+			References:  []string{"https://cwe.mitre.org/data/definitions/319.html"}, Excerpt: excerpt, RawRef: ref}, true
+	case "ftp":
+		return model.RawFinding{Tool: tool, Key: "net:cleartext:ftp",
+			Title: "FTP service exposed (cleartext file transfer)", Host: s.Host, Port: s.Port, Proto: "tcp",
+			Severity: "medium", Basis: model.BasisDirect, CWEs: []string{"CWE-319"}, OWASP: "A02:2021 Cryptographic Failures",
+			Description: "An FTP service accepted a TCP connection. Plain FTP transmits credentials and data without encryption.",
+			Remediation: "Replace FTP with SFTP or FTPS and disable anonymous access unless explicitly required.",
+			References:  []string{"https://cwe.mitre.org/data/definitions/319.html"}, Excerpt: excerpt, RawRef: ref}, true
+	case "redis", "memcached", "mongodb", "elasticsearch", "couchdb", "mysql", "postgresql", "ms-sql-s", "docker":
+		return model.RawFinding{Tool: tool, Key: "net:exposed-datastore:" + s.Name,
+			Title: fmt.Sprintf("Data service %s reachable over the network", s.Name), Host: s.Host, Port: s.Port, Proto: "tcp",
+			Severity: "medium", Basis: model.BasisDirect, CWEs: []string{"CWE-284"}, OWASP: "A05:2021 Security Misconfiguration",
+			Description: "A database/management service accepted a TCP connection from the assessment host. Whether authentication is enforced was NOT tested by this check.",
+			Remediation: "Bind data services to localhost or a private management network, require authentication and restrict access with host firewalls.",
+			Excerpt:     excerpt, RawRef: ref}, true
+	}
+	return model.RawFinding{}, false
 }
 
 func printable(s string) string {
