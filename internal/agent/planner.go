@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -17,12 +18,63 @@ import (
 const maxRounds = 4
 
 type proposal struct {
-	Tool      string            `json:"tool"`
-	Target    string            `json:"target"`
-	Options   map[string]string `json:"options"`
-	Rationale string            `json:"rationale"`
-	Trigger   []string          `json:"trigger_evidence"`
-	Import    string            `json:"-"`
+	Tool      string      `json:"tool"`
+	Target    string      `json:"target"`
+	Options   stepOptions `json:"options"`
+	Rationale string      `json:"rationale"`
+	Trigger   []string    `json:"trigger_evidence"`
+	Import    string      `json:"-"`
+}
+
+// stepOptions is how a model's "options" field for one step decodes. The schema asks
+// for a small object (e.g. {"ports":"1-1024"}), but a model may instead send null for
+// "no options", or occasionally a bare string or number (observed from Groq's
+// openai/gpt-oss-120b). Any of those used to fail json.Unmarshal for the whole plan
+// response, dropping every other step in the round back to the rules planner. Each
+// shape below decodes instead of erroring; sanitizeOptions already allow-lists exactly
+// three keys per tool and drops anything else (audited), so a malformed value can only
+// ever be dropped, never reach a command line.
+type stepOptions map[string]string
+
+func (o *stepOptions) UnmarshalJSON(b []byte) error {
+	t := bytes.TrimSpace(b)
+	if len(t) == 0 || string(t) == "null" {
+		*o = stepOptions{}
+		return nil
+	}
+	if t[0] == '{' {
+		var m map[string]string
+		if err := json.Unmarshal(b, &m); err == nil {
+			*o = m
+			return nil
+		}
+		// An object with a non-string value (a number or bool for one key): coerce
+		// each value to text rather than fail the whole plan over one field.
+		var raw map[string]json.RawMessage
+		if err := json.Unmarshal(b, &raw); err != nil {
+			return err
+		}
+		m = map[string]string{}
+		for k, v := range raw {
+			var s string
+			if json.Unmarshal(v, &s) == nil {
+				m[k] = s
+			} else {
+				m[k] = strings.Trim(string(v), `"`)
+			}
+		}
+		*o = m
+		return nil
+	}
+	// Not an object: a bare string, number or bool. Kept under a key no tool's
+	// allow-list accepts, so sanitizeOptions always drops it (and audits the drop)
+	// instead of it reaching an adapter.
+	var s string
+	if err := json.Unmarshal(b, &s); err != nil {
+		s = string(t)
+	}
+	*o = stepOptions{"raw": s}
+	return nil
 }
 
 type intent struct {

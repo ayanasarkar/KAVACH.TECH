@@ -1,0 +1,85 @@
+/* KAVACH hero + painted interlude styles. Pairs with kavach-hero.js.
+   Linked AFTER kavach-landing.css, just before </head>.
+   To undo, delete the <link> to this file and the kavach-hero.js <script> from landing.html. */
+
+/* The powder canvas sits behind the hero's content but above its background. */
+#home { isolation: isolate; }
+
+/* ---------- 1. Hero wordmark written on, left to right ---------- */
+html.kv-write #home .wm:not(.kv-writing) { visibility: hidden; }
+#home .wm.kv-writing {
+  --w: 0px;
+  -webkit-mask-image: linear-gradient(90deg, #000 calc(var(--w) - 70px), transparent var(--w));
+          mask-image: linear-gradient(90deg, #000 calc(var(--w) - 70px), transparent var(--w));
+  padding-block: .16em;   /* room for matras so the mask doesn't clip them; net layout change is zero */
+  margin-block: -.16em;
+}
+
+/* ---------- 2. Keep the first screen clear of the bottom dock ---------- */
+#home { padding-top: clamp(64px, 9vh, 92px); padding-bottom: 112px; }
+#home .wm { font-size: clamp(4rem, min(11.5vw, 19vh), 9.8rem); }
+#home h1 { font-size: clamp(1.6rem, min(3.8vw, 5.4vh), 3.3rem); }
+@media (max-height: 820px) {
+  #home { gap: 18px 4vw; }
+  #home .lead { margin-top: 8px; font-size: 15px; }
+  #home .cta-row { margin-top: 14px; }
+}
+
+/* ---------- 3. The painted interlude (inserted before Act 04) ---------- */
+.kv-inter { position: relative; height: 260vh; z-index: 2; }
+.kv-stage {
+  position: sticky; top: 0; height: 100vh; overflow: hidden;
+  display: grid; place-items: center;
+}
+/* a huge outlined word behind the painting, drifting against the scroll */
+.kv-ghost {
+  position: absolute; left: 50%; top: 50%; translate: -50% -52%;
+  font: 400 clamp(12rem, 38vw, 42rem)/1 var(--deva, 'Yatra One', serif);
+  color: transparent; -webkit-text-stroke: 1.5px rgba(242, 205, 122, .24);
+  white-space: nowrap; pointer-events: none; user-select: none;
+  filter: url(#kv-rough); will-change: transform;
+}
+.kv-art { position: relative; top: -2vh; z-index: 2; transform-origin: 50% 50%; will-change: transform; }
+.kv-gl { display: block; width: 100%; height: 100%; touch-action: pan-y; cursor: crosshair; }
+.kv-art video { position: absolute; left: 0; top: 0; width: 2px; height: 2px; opacity: 0; pointer-events: none; }
+
+/* caption, written on once the painting is fully open */
+.kv-cap { position: absolute; left: -1vw; bottom: -8vh; margin: 0; z-index: 4; pointer-events: none; }
+.kv-cap-hi {
+  --k: 0;
+  display: block; padding: .08em .3em .12em 0;
+  font: 400 clamp(2.4rem, 6.2vw, 5.4rem)/1.05 var(--deva, 'Yatra One', serif);
+  color: #f2cd7a; text-shadow: 0 2px 28px rgba(0, 0, 0, .75);
+  -webkit-mask-image: linear-gradient(90deg, #000 calc(var(--k) * 1% - 14%), transparent calc(var(--k) * 1%));
+          mask-image: linear-gradient(90deg, #000 calc(var(--k) * 1% - 14%), transparent calc(var(--k) * 1%));
+}
+.kv-cap-en {
+  display: block; margin-top: .2rem; padding-left: .2rem; opacity: 0;
+  font: 500 clamp(.9rem, 1.3vw, 1.1rem)/1.4 var(--sans, system-ui, sans-serif);
+  letter-spacing: .02em; color: rgba(255, 244, 230, .82); text-shadow: 0 1px 14px rgba(0, 0, 0, .8);
+}
+
+/* No WebGL: show the video itself, softened with CSS, opened by a circular wipe */
+.kv-art.nogl video {
+  position: static; width: 100%; height: 100%; opacity: 1; pointer-events: auto; object-fit: cover;
+  filter: saturate(1.35) contrast(1.15) sepia(.3) blur(.4px);
+  clip-path: circle(calc(var(--rv, 0) * 1%) at 50% 50%);
+  -webkit-mask-image: radial-gradient(ellipse 76% 74% at 50% 50%, #000 66%, transparent 100%);
+          mask-image: radial-gradient(ellipse 76% 74% at 50% 50%, #000 66%, transparent 100%);
+}
+
+@media (max-width: 700px) {
+  .kv-inter { height: 200vh; }
+  .kv-cap { left: 2vw; bottom: -8vh; }
+}
+
+/* ---------- 4. Headings smear sideways while scrolling fast ---------- */
+.kv-smearing { filter: url(#kv-smear); }
+
+/* ---------- 5. Wet brush that follows the mouse (sits between the 3D scene and your panes) ---------- */
+#kv-brush { position: fixed; left: 0; top: 0; width: 100vw; height: 100vh; pointer-events: none; z-index: 1; }
+
+@media (prefers-reduced-motion: reduce) {
+  html.kv-write #home .wm { visibility: visible; }
+  .kv-smearing { filter: none; }
+}

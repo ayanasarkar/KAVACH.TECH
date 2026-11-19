@@ -1,0 +1,155 @@
+/* KAVACH theme v2 for the workbench (/workbench) and chat (/console): the landing's oxblood, vermilion and gold-leaf palette.
+   Link it AFTER the page's own stylesheets. It re-colours through the --c-* tokens and adds a few finishing touches; layout is untouched.
+   Text/background pairs were checked for 4.5:1 contrast. To undo it, remove the <link> line from the page. */
+@font-face{font-family:"Yatra One";src:url(fonts/yatra-one-latin-400-normal.woff2) format("woff2");unicode-range:U+0000-00FF,U+2000-206F}
+@font-face{font-family:"Yatra One";src:url(fonts/yatra-one-devanagari-400-normal.woff2) format("woff2");unicode-range:U+0900-097F,U+1CD0-1CF9,U+200C-200D,U+20A8,U+20B9,U+25CC,U+A830-A839,U+A8E0-A8FF}
+
+:root,:root[data-theme="light"]{                       /* ivory paper, oxblood ink */
+  --c-bg:#faf3e8;--c-surface:#fffaf2;--c-sunken:#f1e6d4;--c-hover:#ecdcc3;--c-user:#f2e0c4;
+  --c-line:#e3d1b4;--c-line2:#cdb48c;
+  --c-text:#2a1518;--c-text2:#614549;--c-text3:#735a5c;
+  --c-accent:#8e1b2e;--c-accent-h:#b02a3f;--c-on-accent:#fff8ee;--c-link:#8e1b2e;
+  --c-soft:#f6d9d3;--c-soft-t:#6f1424;
+  --c-ok-bg:#dcebd3;--c-ok:#1b5e3b;--c-warn-bg:#f6e4b0;--c-warn:#6f4a00;--c-bad-bg:#f8d9d3;--c-bad:#a31d2b;
+  --c-shadow:0 1px 2px #5a1a2214,0 8px 30px #5a1a2218;--c-scrim:#2a1518b3;
+}
+:root[data-theme="dark"]{                              /* oxblood night, gold leaf */
+  --c-bg:#160c0e;--c-surface:#201215;--c-sunken:#0f0809;--c-hover:#2c181c;--c-user:#3a2024;
+  --c-line:#3a2226;--c-line2:#5a3339;
+  --c-text:#f6ebe9;--c-text2:#d0b9b8;--c-text3:#a88f91;
+  --c-accent:#c8374a;--c-accent-h:#e0485c;--c-on-accent:#fff8ee;--c-link:#f2cd7a;
+  --c-soft:#3d1d22;--c-soft-t:#f2cd7a;
+  --c-ok-bg:#17342a;--c-ok:#8fe0b5;--c-warn-bg:#3b2d12;--c-warn:#f2cc7a;--c-bad-bg:#3d1b1f;--c-bad:#ff9aa3;
+  --c-shadow:0 1px 2px #0006,0 10px 34px #0008;--c-scrim:#000000b3;
+  --blue:#f2cd7a;                                      /* style.css uses this for headings and links in dark mode: gold leaf */
+}
+/* the 3D viewport is always dark: oxblood ground, peacock hosts, vermilion findings */
+#stage{--bg:#140a0c;--fg:#f6ebe9;--dim:#d0b9b8;--dim2:#a88f91;--bd:#3a2226;--bd2:#5a3339;--blue:#5fc0c9;--green:#8fe0b5;--yellow:#f2cc7a;--red:#ee6a55;--crit:#ff9aa3;--cyan:#d0b9b8;--ink:#140a0c;background:#140a0c;color:#f6ebe9}
+
+/* ---- top bar: painted wash, a live oil-paint कवच, one slow ribbon underneath ---- */
+#bar{position:relative;height:44px;background:linear-gradient(90deg,color-mix(in srgb,var(--c-accent) 16%,var(--c-bg)),var(--c-bg) 45%,color-mix(in srgb,#1f6f7a 14%,var(--c-bg)))}
+#bar::before{content:"\0915\0935\091a";order:-1;display:flex;align-items:center;padding:0 18px 3px;font:400 24px/1 "Yatra One","Nirmala UI",serif;
+  background:linear-gradient(100deg,#f2cd7a,#e07a1f,#e0485c,#f2cd7a) 0 0/90px 100% repeat-x;
+  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent;animation:kv-oil 5s linear infinite}
+@keyframes kv-oil{to{background-position-x:90px}}
+#bar::after{content:"";position:absolute;left:0;right:0;bottom:0;height:2px;pointer-events:none;
+  background:linear-gradient(90deg,#c8374a,#e07a1f,#d9a441,#1f9aa8,#d9a441,#e07a1f,#c8374a) 0 0/60rem 100% repeat-x;animation:kv-ribbon 18s linear infinite}
+@keyframes kv-ribbon{to{background-position-x:60rem}}
+#bar .mn-btn,#ws button,#bar-right>span,.wb-chat{font-family:var(--sans);font-size:12.5px;letter-spacing:.01em}
+#ws button.on{background:linear-gradient(180deg,var(--c-accent-h),var(--c-accent));color:var(--c-on-accent);box-shadow:inset 0 -2px 0 #f2cd7a}
+#ws button.on b,#ws button.on .c{color:var(--c-on-accent);opacity:.8}
+#ws button.on .n{background:var(--c-on-accent);color:var(--c-accent)}
+
+/* ---- panes ---- */
+.pane{background-image:radial-gradient(90% 70% at 100% 0%,color-mix(in srgb,var(--c-accent) 9%,transparent),transparent 62%),radial-gradient(80% 60% at 0% 100%,color-mix(in srgb,#1f6f7a 10%,transparent),transparent 62%)}
+.ptitle{font-family:var(--disp);font-weight:400;font-size:14px;letter-spacing:.03em;text-transform:none;color:var(--c-text);height:38px}
+.ptitle i{font-family:var(--sans);font-size:11.5px;letter-spacing:0}
+.ptitle>span:first-child::before{content:"";display:inline-block;width:7px;height:7px;margin-right:10px;vertical-align:1px;background:#d9a441;transform:rotate(45deg)}
+.qs{border-color:color-mix(in srgb,#d9a441 55%,transparent);outline:1px solid color-mix(in srgb,#d9a441 22%,transparent);outline-offset:3px;border-radius:2px}
+
+/* ---- buttons: vermilion primary with a gold hairline, gold sweep on hover; quiet outlined secondary ---- */
+.btn{display:inline-flex;align-items:center;gap:8px;position:relative;isolation:isolate;overflow:hidden;border-radius:2px;
+  padding:7px 18px;font:600 11.5px/1.2 var(--sans);letter-spacing:.1em;text-transform:uppercase;transition:color .3s,border-color .3s}
+.btn::before{content:"";position:absolute;inset:0;z-index:-1;background:color-mix(in srgb,var(--c-accent) 85%,transparent);transform:scaleX(0);transform-origin:left;transition:transform .45s cubic-bezier(.76,0,.24,1)}
+.btn:hover,.btn:focus-visible{border-color:var(--c-accent);color:var(--c-on-accent)}
+.btn:hover::before,.btn:focus-visible::before{transform:scaleX(1)}
+.btn.pri,.btn.pri:hover,.btn.pri:focus-visible{background:linear-gradient(180deg,var(--c-accent-h),var(--c-accent));color:var(--c-on-accent);border-color:transparent;
+  box-shadow:inset 0 0 0 1px rgba(242,205,122,.55),0 10px 26px -12px var(--c-accent)}
+.btn.pri::before{background:linear-gradient(180deg,#f6dd96,#d9a441)}
+.btn.pri:hover,.btn.pri:focus-visible{color:#1a1005}
+.btn.sm{padding:3px 10px;font-size:11px}
+
+.kv>span{width:22ch}   /* "authorized_domains =" used to run into its input */
+
+/* ---- bottom bar ---- */
+#status{background:linear-gradient(90deg,#7d1a2a,#b02a3f 50%,#7d1a2a);color:#fff8ee}
+
+/* ---- a short wash of oil colour lifts off the screen when either page opens ---- */
+html::after{content:"";position:fixed;inset:0;z-index:2147483000;pointer-events:none;
+  background:radial-gradient(circle at 20% 90%,#c8374a 0,transparent 50%),radial-gradient(circle at 80% 70%,#e07a1f 0,transparent 45%),radial-gradient(circle at 40% 30%,#f2cd7a 0,transparent 50%),radial-gradient(circle at 90% 10%,#1f6f7a 0,transparent 40%),#160c0e;
+  animation:kv-wash .95s cubic-bezier(.76,0,.24,1) both}
+@keyframes kv-wash{from{transform:translateY(0)}to{transform:translateY(-101%)}}
+@media (prefers-reduced-motion:reduce){html::after{display:none}#bar::after,#bar::before{animation:none}.btn::before{transition:none}}
+
+/* ================= v3: oil-painted Kurukshetra dusk (chat /console and sign-in) =================
+   Needs kavach-oil.jpg beside this file. The painting sits behind the page; every text/background pair keeps its veil, so contrast is unchanged.
+   To undo v3, delete everything from this line down. */
+:root{--pv:rgba(250,243,232,.68);--pv2:rgba(250,243,232,.93);--pb:rgba(250,243,232,.8);--pool:rgba(250,243,232,.82);--kv-ink:#8e1b2e;--tsh:none;--oil:#8e1b2e,#c8374a,#e07a1f,#8e1b2e}
+:root[data-theme="dark"]{--pv:rgba(18,8,11,.38);--pv2:rgba(18,8,11,.85);--pb:rgba(14,6,9,.8);--pool:rgba(14,6,9,.74);--kv-ink:#f2cd7a;--tsh:0 2px 22px rgba(0,0,0,.6);--oil:#f2cd7a,#e07a1f,#e0485c,#f2cd7a}
+html{background:var(--c-bg)}
+/* the workbench's always-dark 3D rule above must not catch the chat page, which also has a #stage */
+body:has(#thread) #stage{background:transparent;color:var(--c-text)}
+body:has(#side):has(#thread){background:transparent!important;isolation:isolate}
+body:has(#side):has(#thread)::before,body:has(#side):has(#thread)::after{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none}
+body:has(#side):has(#thread)::before{background:radial-gradient(56% 44% at 50% 46%,var(--pool),transparent 100%),linear-gradient(var(--pv),var(--pv)),url(kavach-oil.jpg) 50% 62%/cover no-repeat;animation:kv-dawn 2.2s cubic-bezier(.2,.7,.2,1) both}
+body:has(#side):has(#thread)::after{background:var(--pv2);opacity:0;transition:opacity .8s}
+body:has(#side):has(#thread):not(.is-empty)::after{opacity:1}
+@keyframes kv-dawn{from{opacity:0;transform:scale(1.07)}to{opacity:1;transform:none}}
+@keyframes kv-oil2{to{background-position-x:180px}}
+
+/* live oil-paint lettering for every कवच wordmark */
+.dv{background:linear-gradient(100deg,var(--oil)) 0 0/180px 100% repeat-x;-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent;animation:kv-oil2 6s linear infinite}
+
+/* sidebar, top bar */
+#side{background:linear-gradient(180deg,var(--pb),var(--pv2)),url(kavach-oil.jpg) 24% 70%/cover;border-right:1px solid color-mix(in srgb,#d9a441 35%,transparent)}
+#top{position:relative;background:transparent}
+body:has(#thread) #top::after{content:"";position:absolute;left:0;right:0;bottom:0;height:1px;background:linear-gradient(90deg,transparent,#d9a441 22%,#c8374a 50%,#1f9aa8 78%,transparent)}
+#side .s-new{white-space:nowrap;position:relative;overflow:hidden;isolation:isolate;justify-content:flex-start;border:1px solid color-mix(in srgb,#d9a441 65%,transparent);border-radius:3px;background:linear-gradient(180deg,var(--c-accent-h),var(--c-accent));color:var(--c-on-accent);transition:color .3s}
+#side .s-new::before{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(180deg,#f6dd96,#d9a441);transform:scaleX(0);transform-origin:left;transition:transform .45s cubic-bezier(.76,0,.24,1)}
+#side .s-new:hover,#side .s-new:focus-visible{color:#1a1005}
+#side .s-new:hover::before,#side .s-new:focus-visible::before{transform:scaleX(1)}
+#side .s-new::after{content:"नया अभियान" / "";margin-left:auto;padding-left:8px;white-space:nowrap;font:400 13px/1 "Yatra One","Nirmala UI",serif}
+
+/* composer and chips: glass over the painting, gold-leaf frame */
+#composer{background:color-mix(in srgb,var(--c-surface) 80%,transparent);backdrop-filter:blur(8px);border-color:color-mix(in srgb,#d9a441 60%,transparent);outline:1px solid color-mix(in srgb,#d9a441 24%,transparent);outline-offset:4px}
+.chip{background:color-mix(in srgb,var(--c-surface) 72%,transparent);border-color:color-mix(in srgb,#d9a441 42%,transparent)}
+.chip:hover,.chip:focus-visible{border-color:#d9a441;color:var(--kv-ink)}
+
+/* Hindi lines: the Gita's opening, and the Mahabharata's "where dharma is, victory is" */
+#empty::before{content:"धर्मक्षेत्रे कुरुक्षेत्रे" / "";display:block;text-align:center;margin-bottom:12px;font:400 clamp(15px,1.7vw,19px)/1.4 "Yatra One","Nirmala UI",serif;word-spacing:.3em;color:var(--kv-ink);text-shadow:var(--tsh)}
+#empty h1,#empty p{text-shadow:var(--tsh)}
+body.is-empty #stage::after{content:"यतो धर्मस्ततो जयः" / "";display:block;text-align:center;margin-top:24px;font:400 16px/1.4 "Yatra One","Nirmala UI",serif;word-spacing:.3em;color:var(--kv-ink);text-shadow:var(--tsh)}
+#proof>header b::after{content:" · प्रमाण" / "";font:400 14px "Yatra One","Nirmala UI",serif;color:var(--kv-ink)}
+#ac-h::after{content:" · खाता" / "";font:400 .8em "Yatra One","Nirmala UI",serif;color:var(--kv-ink)}
+#g-form h1::after{content:"प्रवेश" / "";display:block;margin-top:4px;font:400 16px "Yatra One","Nirmala UI",serif;word-spacing:.3em;color:var(--kv-ink)}
+
+/* sign-in gate: the painting under a veil */
+#gate{background:linear-gradient(var(--pv2),var(--pv)),url(kavach-oil.jpg) 50% 62%/cover}
+
+/* workbench top bar: a strip of the painting under the title and tabs */
+#bar{background:linear-gradient(90deg,var(--pb),color-mix(in srgb,var(--pb) 72%,transparent) 50%,var(--pb)),url(kavach-oil.jpg) 50% 66%/cover}
+@media (prefers-reduced-motion:reduce){body:has(#side):has(#thread)::before,.dv{animation:none}body:has(#side):has(#thread)::after{transition:none}}
+
+/* ================= v4: sign-in as a temple doorway (द्वार) under a chakra halo =================
+   CSS only: the sign-in script, IDs and labels are untouched. To undo v4, delete everything from this line down. */
+@keyframes kv-arch{from{transform:scaleY(.04);opacity:0}to{transform:none;opacity:1}}
+@keyframes kv-in{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes kv-spin{to{rotate:360deg}}
+#gate{overflow:auto;background:radial-gradient(62% 58% at 50% 44%,transparent,var(--pv2) 100%),url(kavach-oil.jpg) 50% 62%/cover}
+#g-form{position:relative;isolation:isolate;margin:auto;width:min(92vw,420px);max-width:none;padding:92px 40px 50px;background:none;border:0;border-radius:0;box-shadow:none;text-align:center}
+#g-form::before{content:"";position:absolute;inset:0;z-index:-1;border-radius:999px 999px 0 0;border:1px solid color-mix(in srgb,#d9a441 75%,transparent);border-bottom:3px solid #d9a441;
+  background:linear-gradient(180deg,color-mix(in srgb,var(--c-surface) 80%,transparent),color-mix(in srgb,var(--c-surface) 92%,transparent));backdrop-filter:blur(10px);
+  box-shadow:0 0 0 7px color-mix(in srgb,#d9a441 12%,transparent),0 0 0 8px color-mix(in srgb,#d9a441 45%,transparent),0 30px 80px -20px #000a;transform-origin:50% 100%;animation:kv-arch 1.1s cubic-bezier(.2,.8,.2,1) both}
+#g-form::after{content:"";position:fixed;left:50%;top:calc(50% - 70px);width:min(150vmin,820px);aspect-ratio:1;translate:-50% -50%;z-index:-2;pointer-events:none;border-radius:50%;
+  background:repeating-conic-gradient(color-mix(in srgb,#d9a441 60%,transparent) 0 .7deg,transparent .7deg 7.5deg);
+  -webkit-mask:radial-gradient(circle closest-side,transparent 56%,#000 57%,#000 84%,transparent 85%);mask:radial-gradient(circle closest-side,transparent 56%,#000 57%,#000 84%,transparent 85%);animation:kv-spin 120s linear infinite}
+#g-form>*{animation:kv-in .7s .45s both}
+#g-form .brand{justify-content:center;padding:0}
+#g-form h1{font:400 15px/1.3 var(--c-sans);color:var(--c-text2);letter-spacing:.02em}
+#g-form h1::before{content:"प्रवेश" / "";display:block;margin-bottom:6px;font:400 clamp(40px,11vw,54px)/1.15 "Yatra One","Nirmala UI",serif;background:linear-gradient(100deg,var(--oil)) 0 0/180px 100% repeat-x;-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;animation:kv-oil2 6s linear infinite}
+#g-form h1::after{content:none}
+#g-form #g-p{max-width:300px;margin:0 auto}
+/* fields: no boxes, a line that paints in gold on focus */
+#g-form label{text-align:left;font:500 12.5px/1.2 var(--c-sans);color:var(--c-text2)}
+#g-form input{background-color:transparent;border:0;border-radius:0;border-bottom:1px solid color-mix(in srgb,#d9a441 50%,transparent);padding:9px 2px;color:var(--c-text);font:400 16px/1.3 var(--c-sans);box-shadow:none;outline:0;
+  background-image:linear-gradient(90deg,#c8374a,#e07a1f,#f2cd7a);background-repeat:no-repeat;background-position:0 100%;background-size:0 2px;transition:background-size .5s cubic-bezier(.76,0,.24,1)}
+#g-form input:focus{background-size:100% 2px}
+#g-form input:-webkit-autofill{-webkit-text-fill-color:var(--c-text);-webkit-box-shadow:0 0 0 100px var(--c-surface) inset}
+#g-err{border-radius:0;background:transparent;border-left:3px solid currentColor;text-align:left;padding:4px 10px}
+/* button: a shield (कवच). Hover floods it with gold; the clip hides outlines, so the colour change is the focus cue too */
+#g-form #g-go{align-self:center;width:min(100%,250px);height:64px;margin-top:14px;padding:0 0 14px;justify-content:center;border:0;border-radius:0;font-size:12.5px;background:#d9a441;box-shadow:none;clip-path:polygon(0 0,100% 0,100% 58%,50% 100%,0 58%)}
+#g-form #g-go::before{inset:2px;transform:none;background:linear-gradient(180deg,var(--c-accent-h),var(--c-accent));clip-path:polygon(0 0,100% 0,100% 58%,50% 100%,0 58%);transition:background .3s}
+#g-form #g-go:hover,#g-form #g-go:focus-visible{background:#f2cd7a;color:#1a1005}
+#g-form #g-go:hover::before,#g-form #g-go:focus-visible::before{background:linear-gradient(180deg,#f6dd96,#d9a441)}
+#g-form .g-note,#g-note{margin-top:2px}
+@media (prefers-reduced-motion:reduce){#g-form::before,#g-form::after,#g-form>*,#g-form h1::before{animation:none}}

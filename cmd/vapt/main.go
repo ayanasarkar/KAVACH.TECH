@@ -42,6 +42,12 @@ type server struct {
 	auth       *auth.Store
 	mu         sync.Mutex
 	items      map[string]*agent.Assessment
+	// allowedHosts are extra public host names this console may be addressed by (a hosted deployment behind a TLS proxy).
+	// Empty on a local run, where only loopback names pass the Host check.
+	allowedHosts map[string]bool
+	// labOnly (VAPT_LAB_ONLY) refuses allow_non_lab and authorized_domains from any signed-in user, so an internet-facing
+	// deployment can only ever be pointed at private or loopback lab targets.
+	labOnly bool
 }
 
 func main() {
@@ -59,6 +65,14 @@ func main() {
 	}
 	s := &server{env: agent.Env{DataDir: *data, Reg: adapters.NewRegistry(), LLM: llm.FromEnv()}, token: hex.EncodeToString(tok), auth: st, items: map[string]*agent.Assessment{}}
 	s.listenHost = hostOnly(*addr)
+	s.allowedHosts = parseHosts(os.Getenv("VAPT_ALLOWED_HOSTS"), os.Getenv("RENDER_EXTERNAL_HOSTNAME"))
+	s.labOnly = truthy(os.Getenv("VAPT_LAB_ONLY"))
+	if len(s.allowedHosts) > 0 {
+		log.Printf("deployment: also answering to host name(s) %s", strings.Join(sortedKeys(s.allowedHosts), ", "))
+	}
+	if s.labOnly {
+		log.Printf("deployment: lab-only mode on; allow_non_lab and authorized_domains are refused")
+	}
 	// Reload assessments saved by earlier runs so the history survives a restart.
 	loaded, problems := agent.RestoreAll(s.env)
 	for _, a := range loaded {
@@ -111,7 +125,62 @@ func (s *server) handler() http.Handler {
 	mux.HandleFunc("/api/guard-check", s.guardCheck)
 	mux.HandleFunc("/api/lab-status", s.labStatus)
 	mux.HandleFunc("/api/assessments/", s.item)
-	return s.protect(s.gate(mux))
+	guarded := s.protect(s.gate(mux))
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// A hosting platform's health probe may not send a host name we recognise and cannot sign in. This answers
+		// only "the process is up" and reveals nothing else.
+		if r.URL.Path == "/healthz" && (r.Method == http.MethodGet || r.Method == http.MethodHead) {
+			w.Header().Set("Cache-Control", "no-store")
+			w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+			w.Write([]byte("ok\n"))
+			return
+		}
+		guarded.ServeHTTP(w, r)
+	})
+}
+
+// parseHosts turns comma-separated host names into a lower-case set. A scheme, path or port is not a host name and is
+// dropped, because the Host check compares the name alone.
+func parseHosts(lists ...string) map[string]bool {
+	out := map[string]bool{}
+	for _, l := range lists {
+		for _, h := range strings.Split(l, ",") {
+			h = strings.ToLower(strings.TrimSpace(h))
+			h = strings.TrimPrefix(strings.TrimPrefix(h, "https://"), "http://")
+			if i := strings.IndexAny(h, "/:"); i >= 0 {
+				h = h[:i]
+			}
+			if h != "" && h != "*" {
+				out[h] = true
+			}
+		}
+	}
+	return out
+}
+
+func sortedKeys(m map[string]bool) []string {
+	ks := make([]string, 0, len(m))
+	for k := range m {
+		ks = append(ks, k)
+	}
+	sort.Strings(ks)
+	return ks
+}
+
+func truthy(s string) bool {
+	switch strings.ToLower(strings.TrimSpace(s)) {
+	case "1", "true", "yes", "on":
+		return true
+	}
+	return false
+}
+
+// labOnlyRefusal is non-empty when this deployment is lab-only and the request asks for a wider scope than that.
+func (s *server) labOnlyRefusal(c createReq) string {
+	if s.labOnly && (c.AllowNonLab || len(c.AuthorizedDomains) > 0) {
+		return "this deployment is lab-only: allow_non_lab and authorized_domains are switched off (VAPT_LAB_ONLY)"
+	}
+	return ""
 }
 
 // protect defends the loopback console against DNS rebinding and cross-site requests. A web page on
@@ -126,7 +195,7 @@ func (s *server) protect(next http.Handler) http.Handler {
 			h = hh
 		}
 		h = strings.Trim(strings.ToLower(h), "[]")
-		if !(h == "127.0.0.1" || h == "localhost" || h == "::1" || (s.listenHost != "" && h == strings.ToLower(s.listenHost))) {
+		if !(h == "127.0.0.1" || h == "localhost" || h == "::1" || (s.listenHost != "" && h == strings.ToLower(s.listenHost)) || s.allowedHosts[h]) {
 			fail(w, 403, "unexpected Host header: this console only answers requests addressed to the local machine")
 			return
 		}
@@ -227,6 +296,10 @@ func (s *server) create(w http.ResponseWriter, r *http.Request) {
 	var c createReq
 	if err := json.NewDecoder(r.Body).Decode(&c); err != nil {
 		fail(w, 400, "bad JSON: "+err.Error())
+		return
+	}
+	if msg := s.labOnlyRefusal(c); msg != "" {
+		fail(w, 403, msg)
 		return
 	}
 	if strings.TrimSpace(c.Request) == "" {
@@ -460,6 +533,10 @@ func (s *server) guardCheck(w http.ResponseWriter, r *http.Request) {
 	}
 	if err := json.NewDecoder(r.Body).Decode(&in); err != nil {
 		fail(w, 400, "bad JSON: "+err.Error())
+		return
+	}
+	if msg := s.labOnlyRefusal(in.createReq); msg != "" {
+		fail(w, 403, msg)
 		return
 	}
 	if len(in.Check) > 50 {

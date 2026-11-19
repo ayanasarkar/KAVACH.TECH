@@ -86,7 +86,7 @@ func Build(a *agent.Assessment) []byte {
 
 	// 7.2
 	d.H1("2. Assessment Methodology")
-	d.Para("The assessment followed the NIST SP 800-115 technical testing lifecycle (planning, discovery, attack/validation, reporting) with the agent proposing each step, a deterministic scope guard approving or refusing it, and a human analyst approving scans and any active validation. Findings were described using CVE, CVSS and CWE identifiers where tools reported them, and OWASP Top 10 categories for web issues. Use of these references does not establish formal compliance with any standard.", 10, false, pdf.Black, 0)
+	d.Para("The assessment followed the NIST SP 800-115 technical testing lifecycle (planning, discovery, attack/validation, reporting) with the agent proposing each step, a deterministic scope guard approving or refusing it, and a human analyst approving scans and any active validation. Findings were described using CVE, CVSS and CWE identifiers where tools reported them, and OWASP Top 10 categories for web issues. Where a finding's CWE has a known alignment, its MITRE ATT&CK tactic and NIST CSF 2.0 category are also shown; this is deliberately tactic/category-level (not a specific technique ID or sub-category), since MITRE does not publish a direct CWE-to-technique table and one CWE can relate to dozens of attack patterns. Use of these references does not establish formal compliance with any standard.", 10, false, pdf.Black, 0)
 	d.H2("Rules of engagement")
 	for _, s := range []string{
 		"Authorisation reference: " + a.Scope.Authorization,
@@ -177,6 +177,9 @@ func Build(a *agent.Assessment) []byte {
 		}
 		d.Para(fmt.Sprintf("Severity: %s    CVSS: %s", strings.ToUpper(f.Severity), cv), 9.5, false, pdf.Black, 0)
 		d.Para(fmt.Sprintf("CVE: %s    CWE: %s    OWASP: %s", orDash(f.CVEs), orDash(f.CWEs), dash(f.OWASP)), 9.5, false, pdf.Black, 0)
+		if fw := frameworkLine(f.CWEs); fw != "" {
+			d.Para(fw, 9.0, false, pdf.Grey, 0)
+		}
 		d.Para(fmt.Sprintf("Status: %s    Confidence: %s (%.0f%%)    Validation: %s    Basis: %s", f.Status, f.ConfLabel, f.Confidence*100, f.Validation, f.Basis), 9.5, true, pdf.Black, 0)
 		d.Para("Description (OBSERVED / tool-reported):", 9.5, true, pdf.Grey, 0)
 		d.Para(f.Description, 9.5, false, pdf.Black, 8)

@@ -1,0 +1,28 @@
+# Optional Render Blueprint (New + > Blueprint). The dashboard route in docs/DEPLOY-RENDER.md does the same thing by hand.
+# The language model is Groq's OpenAI-compatible API. To use Claude instead, drop the VAPT_OPENAI_URL, VAPT_OPENAI_KEY and
+# VAPT_MODEL entries and add ANTHROPIC_API_KEY (sync: false) and VAPT_MODEL=claude-sonnet-5-5. Use one provider only:
+# the program prefers Anthropic whenever ANTHROPIC_API_KEY is set.
+services:
+  - type: web
+    name: kavach
+    runtime: docker
+    plan: free            # free sleeps after 15 idle minutes; use "starter" for demo day
+    region: singapore     # closest Render region to India
+    branch: finale-prep
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /healthz
+    envVars:
+      - key: KAVACH_ADMIN_USER
+        sync: false       # you type these in the dashboard; they are never stored in git
+      - key: KAVACH_ADMIN_PASSWORD
+        sync: false
+      - key: VAPT_OPENAI_URL
+        value: https://api.groq.com/openai/v1   # the program adds /chat/completions itself
+      - key: VAPT_OPENAI_KEY
+        sync: false       # your Groq key: type it in the dashboard, never in git
+      - key: VAPT_MODEL
+        sync: false       # the exact Groq model id that passed your test, for example openai/gpt-oss-120b
+      - key: VAPT_LAB_ONLY
+        value: "1"
+      - key: VAPT_RUN_LAB
+        value: "1"
