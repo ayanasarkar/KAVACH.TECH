@@ -70,3 +70,52 @@ html::after{content:"";position:fixed;inset:0;z-index:2147483000;pointer-events:
   animation:kv-wash .95s cubic-bezier(.76,0,.24,1) both}
 @keyframes kv-wash{from{transform:translateY(0)}to{transform:translateY(-101%)}}
 @media (prefers-reduced-motion:reduce){html::after{display:none}#bar::after,#bar::before{animation:none}.btn::before{transition:none}}
+
+/* ================= v3: oil-painted Kurukshetra dusk (chat /console and sign-in) =================
+   Needs kavach-oil.jpg beside this file. The painting sits behind the page; every text/background pair keeps its veil, so contrast is unchanged.
+   To undo v3, delete everything from this line down. */
+:root{--pv:rgba(250,243,232,.68);--pv2:rgba(250,243,232,.93);--pb:rgba(250,243,232,.8);--pool:rgba(250,243,232,.82);--kv-ink:#8e1b2e;--tsh:none;--oil:#8e1b2e,#c8374a,#e07a1f,#8e1b2e}
+:root[data-theme="dark"]{--pv:rgba(18,8,11,.38);--pv2:rgba(18,8,11,.85);--pb:rgba(14,6,9,.8);--pool:rgba(14,6,9,.74);--kv-ink:#f2cd7a;--tsh:0 2px 22px rgba(0,0,0,.6);--oil:#f2cd7a,#e07a1f,#e0485c,#f2cd7a}
+html{background:var(--c-bg)}
+/* the workbench's always-dark 3D rule above must not catch the chat page, which also has a #stage */
+body:has(#thread) #stage{background:transparent;color:var(--c-text)}
+body:has(#side):has(#thread){background:transparent!important;isolation:isolate}
+body:has(#side):has(#thread)::before,body:has(#side):has(#thread)::after{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none}
+body:has(#side):has(#thread)::before{background:radial-gradient(56% 44% at 50% 46%,var(--pool),transparent 100%),linear-gradient(var(--pv),var(--pv)),url(kavach-oil.jpg) 50% 62%/cover no-repeat;animation:kv-dawn 2.2s cubic-bezier(.2,.7,.2,1) both}
+body:has(#side):has(#thread)::after{background:var(--pv2);opacity:0;transition:opacity .8s}
+body:has(#side):has(#thread):not(.is-empty)::after{opacity:1}
+@keyframes kv-dawn{from{opacity:0;transform:scale(1.07)}to{opacity:1;transform:none}}
+@keyframes kv-oil2{to{background-position-x:180px}}
+
+/* live oil-paint lettering for every कवच wordmark */
+.dv{background:linear-gradient(100deg,var(--oil)) 0 0/180px 100% repeat-x;-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent;animation:kv-oil2 6s linear infinite}
+
+/* sidebar, top bar */
+#side{background:linear-gradient(180deg,var(--pb),var(--pv2)),url(kavach-oil.jpg) 24% 70%/cover;border-right:1px solid color-mix(in srgb,#d9a441 35%,transparent)}
+#top{position:relative;background:transparent}
+body:has(#thread) #top::after{content:"";position:absolute;left:0;right:0;bottom:0;height:1px;background:linear-gradient(90deg,transparent,#d9a441 22%,#c8374a 50%,#1f9aa8 78%,transparent)}
+#side .s-new{white-space:nowrap;position:relative;overflow:hidden;isolation:isolate;justify-content:flex-start;border:1px solid color-mix(in srgb,#d9a441 65%,transparent);border-radius:3px;background:linear-gradient(180deg,var(--c-accent-h),var(--c-accent));color:var(--c-on-accent);transition:color .3s}
+#side .s-new::before{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(180deg,#f6dd96,#d9a441);transform:scaleX(0);transform-origin:left;transition:transform .45s cubic-bezier(.76,0,.24,1)}
+#side .s-new:hover,#side .s-new:focus-visible{color:#1a1005}
+#side .s-new:hover::before,#side .s-new:focus-visible::before{transform:scaleX(1)}
+#side .s-new::after{content:"नया अभियान" / "";margin-left:auto;padding-left:8px;white-space:nowrap;font:400 13px/1 "Yatra One","Nirmala UI",serif}
+
+/* composer and chips: glass over the painting, gold-leaf frame */
+#composer{background:color-mix(in srgb,var(--c-surface) 80%,transparent);backdrop-filter:blur(8px);border-color:color-mix(in srgb,#d9a441 60%,transparent);outline:1px solid color-mix(in srgb,#d9a441 24%,transparent);outline-offset:4px}
+.chip{background:color-mix(in srgb,var(--c-surface) 72%,transparent);border-color:color-mix(in srgb,#d9a441 42%,transparent)}
+.chip:hover,.chip:focus-visible{border-color:#d9a441;color:var(--kv-ink)}
+
+/* Hindi lines: the Gita's opening, and the Mahabharata's "where dharma is, victory is" */
+#empty::before{content:"धर्मक्षेत्रे कुरुक्षेत्रे" / "";display:block;text-align:center;margin-bottom:12px;font:400 clamp(15px,1.7vw,19px)/1.4 "Yatra One","Nirmala UI",serif;word-spacing:.3em;color:var(--kv-ink);text-shadow:var(--tsh)}
+#empty h1,#empty p{text-shadow:var(--tsh)}
+body.is-empty #stage::after{content:"यतो धर्मस्ततो जयः" / "";display:block;text-align:center;margin-top:24px;font:400 16px/1.4 "Yatra One","Nirmala UI",serif;word-spacing:.3em;color:var(--kv-ink);text-shadow:var(--tsh)}
+#proof>header b::after{content:" · प्रमाण" / "";font:400 14px "Yatra One","Nirmala UI",serif;color:var(--kv-ink)}
+#ac-h::after{content:" · खाता" / "";font:400 .8em "Yatra One","Nirmala UI",serif;color:var(--kv-ink)}
+#g-form h1::after{content:"प्रवेश" / "";display:block;margin-top:4px;font:400 16px "Yatra One","Nirmala UI",serif;word-spacing:.3em;color:var(--kv-ink)}
+
+/* sign-in gate: the painting under a veil */
+#gate{background:linear-gradient(var(--pv2),var(--pv)),url(kavach-oil.jpg) 50% 62%/cover}
+
+/* workbench top bar: a strip of the painting under the title and tabs */
+#bar{background:linear-gradient(90deg,var(--pb),color-mix(in srgb,var(--pb) 72%,transparent) 50%,var(--pb)),url(kavach-oil.jpg) 50% 66%/cover}
+@media (prefers-reduced-motion:reduce){body:has(#side):has(#thread)::before,.dv{animation:none}body:has(#side):has(#thread)::after{transition:none}}
