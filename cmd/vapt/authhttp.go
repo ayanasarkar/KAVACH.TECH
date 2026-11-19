@@ -77,7 +77,13 @@ func (s *server) session(r *http.Request) (auth.Principal, string, bool) {
 }
 
 func setSession(w http.ResponseWriter, r *http.Request, tok string, maxAge int) {
-	http.SetCookie(w, &http.Cookie{Name: cookieName, Value: tok, Path: "/", HttpOnly: true, SameSite: http.SameSiteStrictMode, Secure: r.TLS != nil, MaxAge: maxAge})
+	http.SetCookie(w, &http.Cookie{Name: cookieName, Value: tok, Path: "/", HttpOnly: true, SameSite: http.SameSiteStrictMode, Secure: secureRequest(r), MaxAge: maxAge})
+}
+
+// secureRequest reports whether the browser reached us over HTTPS: directly, or through a TLS-terminating proxy that
+// says so. The forwarded header can only switch the Secure flag on, so a client that forges it gains nothing.
+func secureRequest(r *http.Request) bool {
+	return r.TLS != nil || strings.EqualFold(strings.TrimSpace(r.Header.Get("X-Forwarded-Proto")), "https")
 }
 
 func clientIP(r *http.Request) string {

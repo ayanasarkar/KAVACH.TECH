@@ -1,0 +1,11 @@
+.git
+.github
+data
+bin
+*.exe
+*.log
+*.bak
+_*
+kavach-update*
+.env
+.env.*

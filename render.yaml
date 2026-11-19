@@ -1,0 +1,25 @@
+# Optional Render Blueprint (New + > Blueprint). The dashboard route in docs/DEPLOY-RENDER.md does the same thing by hand.
+services:
+  - type: web
+    name: kavach
+    runtime: docker
+    plan: free            # free sleeps after 15 idle minutes; use "starter" for demo day
+    region: singapore     # closest Render region to India
+    branch: finale-prep
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /healthz
+    envVars:
+      - key: KAVACH_ADMIN_USER
+        sync: false       # you type these in the dashboard; they are never stored in git
+      - key: KAVACH_ADMIN_PASSWORD
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: VAPT_ALLOWED_HOSTS
+        sync: false       # your <name>.onrender.com host name
+      - key: VAPT_MODEL
+        value: claude-sonnet-5-5
+      - key: VAPT_LAB_ONLY
+        value: "1"
+      - key: VAPT_RUN_LAB
+        value: "1"
