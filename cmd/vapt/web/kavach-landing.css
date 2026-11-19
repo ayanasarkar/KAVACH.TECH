@@ -1,0 +1,38 @@
+/* KAVACH landing: oil-painted Kurukshetra, Hindi act names, gold-leaf panes.
+   Link it LAST in <head> (after the page's own <style>). Needs kavach-oil.jpg beside it.
+   To undo, delete the <link href="kavach-landing.css"> line from landing.html. */
+@keyframes kvl-pan{from{transform:translateY(6%)}to{transform:translateY(-6%)}}
+html{background:var(--bg)}
+body{background:transparent;isolation:isolate}
+body::before,body::after{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none}
+/* the painting drifts as you scroll (browsers without scroll timelines just show it still) */
+body::before{inset:-14% 0;background:url(kavach-oil.jpg) 50% 60%/cover no-repeat;animation:kvl-pan linear both;animation-timeline:scroll(root)}
+body::after{background:linear-gradient(90deg,rgba(14,6,9,.8),rgba(14,6,9,.4) 58%,rgba(14,6,9,.55)),linear-gradient(rgba(14,6,9,.18),rgba(14,6,9,.5))}
+
+/* headlines in Yatra One, each with its Hindi line */
+.hero h1,.pane h2{font-family:var(--deva);font-weight:400;letter-spacing:0}
+.hero h1{font-size:clamp(2rem,3.6vw,3.1rem);line-height:1.15}
+.pane h2{font-size:clamp(1.6rem,2.8vw,2.3rem);line-height:1.2}
+.hero h1::after,.pane h2::after{display:block;margin-top:12px;font:400 clamp(15px,1.5vw,19px)/1.55 var(--deva);color:#f2cd7a;letter-spacing:0;width:min(620px,90vw)}
+.pane h2::after{font-size:.52em}
+.hero h1::after{content:"अधिकांश AI एजेंट लक्ष्य की आज्ञा मानते हैं; कवच उससे जिरह करता है।" / ""}
+#guard h2::after{content:"प्रॉम्प्ट को बहकाया जा सकता है; TCP सॉकेट को नहीं।" / ""}
+#approve h2::after{content:"जिस स्वायत्तता पर अंकुश न हो, वह जोखिम है।" / ""}
+#ch h2::after{content:"एजेंट अपना लॉग बदल सके, तो वह कभी हुआ ही नहीं।" / ""}
+#findings h2::after{content:"हर दावे के पीछे एक पंक्ति-संख्या है।" / ""}
+.wm::after{content:"धर्मक्षेत्रे कुरुक्षेत्रे" / "";display:block;margin-top:16px;font:400 clamp(14px,1.5vw,19px)/1.4 var(--deva);letter-spacing:0;word-spacing:.3em;color:#f2cd7a;-webkit-text-fill-color:#f2cd7a}
+
+/* act names as outlined Devanagari behind each pane: व्यूह (formation), संकल्प (vow), शृंखला (chain), साक्ष्य (evidence) */
+#guard::before,#approve::before,#findings::before,#ch .stick::before{position:absolute;right:2vw;top:50%;transform:translateY(-50%);z-index:-1;pointer-events:none;
+  font:400 clamp(7rem,19vw,20rem)/1 var(--deva);letter-spacing:0;color:transparent;-webkit-text-stroke:1.5px color-mix(in srgb,#d9a441 40%,transparent)}
+#guard::before{content:"व्यूह" / ""}#approve::before{content:"संकल्प" / ""}#ch .stick::before{content:"शृंखला" / ""}#findings::before{content:"साक्ष्य" / ""}
+
+/* panes: painted glass in a gold-leaf frame, no hard offset shadows */
+.pane,.quarantine-card{background:color-mix(in srgb,var(--surf) 78%,transparent);border:1px solid color-mix(in srgb,#d9a441 55%,transparent);border-radius:2px;
+  box-shadow:0 0 0 6px color-mix(in srgb,#d9a441 10%,transparent),0 40px 90px -40px #000}
+.pane{border-left:4px solid var(--ac)}
+.st,.tkr{background:color-mix(in srgb,var(--surf) 72%,transparent);backdrop-filter:blur(8px)}
+.act-dock{border-radius:999px;border-color:color-mix(in srgb,#d9a441 55%,transparent);background:color-mix(in srgb,var(--surf) 80%,transparent);box-shadow:0 12px 40px -12px #000}
+.act-dock a{border-radius:999px}
+#rail i{background:linear-gradient(#c8374a,#e07a1f,#d9a441,#1f9aa8)}
+@media (prefers-reduced-motion:reduce){body::before{animation:none}}
