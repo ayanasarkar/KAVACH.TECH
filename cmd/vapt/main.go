@@ -48,6 +48,8 @@ type server struct {
 	// labOnly (VAPT_LAB_ONLY) refuses allow_non_lab and authorized_domains from any signed-in user, so an internet-facing
 	// deployment can only ever be pointed at private or loopback lab targets.
 	labOnly bool
+	// openSignup (KAVACH_OPEN_SIGNUP) shows a Create account button that makes viewer accounts only. Off by default.
+	openSignup bool
 }
 
 func main() {
@@ -67,6 +69,10 @@ func main() {
 	s.listenHost = hostOnly(*addr)
 	s.allowedHosts = parseHosts(os.Getenv("VAPT_ALLOWED_HOSTS"), os.Getenv("RENDER_EXTERNAL_HOSTNAME"))
 	s.labOnly = truthy(os.Getenv("VAPT_LAB_ONLY"))
+	s.openSignup = truthy(os.Getenv("KAVACH_OPEN_SIGNUP"))
+	if s.openSignup {
+		log.Printf("deployment: self-service sign-up is on; new accounts are viewers only")
+	}
 	if len(s.allowedHosts) > 0 {
 		log.Printf("deployment: also answering to host name(s) %s", strings.Join(sortedKeys(s.allowedHosts), ", "))
 	}
