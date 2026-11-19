@@ -12,3 +12,8 @@ kavach-audit.jsonl
 # These have no reason to be committed; the real history is git's.
 *.before-close-*
 _*-[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]-[0-9][0-9][0-9][0-9][0-9][0-9]/
+
+.env
+.env.*
+!.env.example
+*.bak
