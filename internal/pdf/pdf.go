@@ -64,6 +64,12 @@ func esc(s string) string {
 		default:
 			// WinAnsi (cp1252) for common punctuation, '?' otherwise.
 			switch r {
+			case '‐', '‑', '‒':
+				// Unicode hyphen, non-breaking hyphen, figure dash: models (observed:
+				// Groq's openai/gpt-oss-120b, writing "web‑server") use these for a
+				// plain compound-word hyphen. None are in WinAnsi, so without this they
+				// fall through to '?' below ("web?server") in the rendered PDF.
+				b.WriteByte('-')
 			case '–':
 				b.WriteString(`\226`)
 			case '—':
