@@ -315,3 +315,9 @@ kbd{font:11.5px var(--c-mono);border:1px solid var(--c-line2);border-radius:5px;
 .asme{font-weight:600}
 
 #gate .g-theme{position:absolute;top:16px;right:16px}
+
+/* Finale polish: prevent scope popover clipping & sharpen menu backdrop */
+#scope-pop { box-sizing: border-box; max-width: calc(100vw - 24px); z-index: 20; }
+#scope-pop .sc-grid > * { min-width: 0; }
+#scope-pop input, #scope-pop textarea { max-width: 100%; box-sizing: border-box; }
+#pal, .scrim, [data-scrim] { background: rgba(12, 6, 7, 0.94) !important; backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
