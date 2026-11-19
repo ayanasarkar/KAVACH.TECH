@@ -1,0 +1,72 @@
+/* KAVACH Mahabharata theme for the workbench (/workbench) and chat (/console) pages.
+   Link it AFTER the page's own stylesheets. It re-colours through the existing --c-* tokens, so layout is untouched.
+   Palette: vermilion #8f2415, saffron #e07a1f, antique gold #d9a441, ivory #f3e7cd, peacock #1f6f7a, night umber #120d09.
+   Every text/background pair was checked for 4.5:1 contrast. To undo it, remove the <link> line from the page. */
+
+@font-face{font-family:"Yatra One";src:url(fonts/yatra-one-latin-400-normal.woff2) format("woff2");unicode-range:U+0000-00FF,U+2000-206F}
+@font-face{font-family:"Yatra One";src:url(fonts/yatra-one-devanagari-400-normal.woff2) format("woff2");unicode-range:U+0900-097F,U+1CD0-1CF9,U+200C-200D,U+20A8,U+20B9,U+25CC,U+A830-A839,U+A8E0-A8FF}
+
+:root,:root[data-theme="light"]{                       /* parchment */
+  --c-bg:#f6edd8;--c-surface:#fbf5e6;--c-sunken:#efe2c4;--c-hover:#ead9b4;--c-user:#f0dfb8;
+  --c-line:#dcc79b;--c-line2:#c2a870;
+  --c-text:#2a1608;--c-text2:#5f4528;--c-text3:#6f5535;
+  --c-accent:#8f2415;--c-accent-h:#b3341f;--c-on-accent:#fff6e6;--c-link:#8f2415;
+  --c-soft:#f0d3b8;--c-soft-t:#6b180d;
+  --c-ok-bg:#dcebd3;--c-ok:#1b5e3b;--c-warn-bg:#f6e4b0;--c-warn:#6f4a00;--c-bad-bg:#f5d5c8;--c-bad:#9c1c1c;
+  --c-shadow:0 1px 2px #4a2a0a14,0 8px 30px #4a2a0a1a;--c-scrim:#2a1608b3;
+}
+:root[data-theme="dark"]{                              /* night umber and gold */
+  --c-bg:#120d09;--c-surface:#1b140d;--c-sunken:#0d0906;--c-hover:#2a1d12;--c-user:#33200f;
+  --c-line:#3a2a1a;--c-line2:#5a4128;
+  --c-text:#f3e7cd;--c-text2:#cdb98f;--c-text3:#a8946c;
+  --c-accent:#d9a441;--c-accent-h:#f2cd7a;--c-on-accent:#1a1005;--c-link:#f2cd7a;
+  --c-soft:#2e1f0e;--c-soft-t:#f2cd7a;
+  --c-ok-bg:#16301f;--c-ok:#9fd9b0;--c-warn-bg:#3b2d12;--c-warn:#f2cc7a;--c-bad-bg:#3d1912;--c-bad:#ff9a85;
+  --c-shadow:0 1px 2px #0006,0 10px 34px #0008;--c-scrim:#000000b3;
+  --blue:#f2cd7a;                                      /* style.css sets this in dark mode; keep it gold */
+}
+/* the 3D viewport is always dark: umber with a peacock-blue host, vermilion findings */
+#stage{--bg:#0d0906;--fg:#f3e7cd;--dim:#cdb98f;--dim2:#a8946c;--bd:#3a2a1a;--bd2:#5a4128;--blue:#5fc0c9;--green:#9fd9b0;--yellow:#f2cc7a;--red:#e0684a;--crit:#ff9a85;--cyan:#cdb98f;--ink:#0d0906;background:#0d0906;color:#f3e7cd}
+
+/* ---- workbench ---- */
+.pane{background-image:
+  radial-gradient(90% 70% at 100% 0%,color-mix(in srgb,var(--c-accent) 8%,transparent),transparent 62%),
+  radial-gradient(80% 60% at 0% 100%,color-mix(in srgb,#1f6f7a 9%,transparent),transparent 62%)}
+.ptitle{font-family:var(--disp);font-weight:400;font-size:13px;letter-spacing:.04em;text-transform:none;color:var(--c-text)}
+.ptitle i{font-family:var(--mono);font-size:11px;letter-spacing:0}
+.ptitle>span:first-child::before{content:"";display:inline-block;width:6px;height:6px;margin-right:10px;vertical-align:1px;
+  background:var(--c-accent);transform:rotate(45deg)}
+#ws button.on{background:var(--c-accent);color:var(--c-on-accent)}
+#ws button.on b,#ws button.on .c{color:var(--c-on-accent);opacity:.78}
+#ws button.on .n{background:var(--c-on-accent);color:var(--c-accent)}
+
+/* one slow ribbon of oil colour along the bottom of the top bar */
+#bar{position:relative}
+#bar::after{content:"";position:absolute;left:0;right:0;bottom:0;height:2px;pointer-events:none;
+  background:linear-gradient(90deg,#8f2415,#e07a1f,#d9a441,#1f6f7a,#d9a441,#e07a1f,#8f2415) 0 0/60rem 100% repeat-x;
+  animation:kv-ribbon 18s linear infinite}
+@keyframes kv-ribbon{to{background-position-x:60rem}}
+
+/* buttons: square-edged, gold-engraved primary, colour sweeps in from the left on hover */
+.btn{display:inline-flex;align-items:center;gap:8px;position:relative;isolation:isolate;overflow:hidden;border-radius:2px;
+  padding:6px 16px;font-weight:500;letter-spacing:.05em;transition:color .3s,border-color .3s}
+.btn::before{content:"";position:absolute;inset:0;z-index:-1;background:var(--c-accent);
+  transform:scaleX(0);transform-origin:left;transition:transform .45s cubic-bezier(.76,0,.24,1)}
+.btn:hover,.btn:focus-visible{border-color:var(--c-accent);color:var(--c-on-accent)}
+.btn:hover::before,.btn:focus-visible::before{transform:scaleX(1)}
+.btn.pri{background:linear-gradient(180deg,var(--c-accent-h),var(--c-accent));color:var(--c-on-accent);border-color:transparent;
+  box-shadow:inset 0 0 0 1px color-mix(in srgb,#fff 26%,transparent)}
+.btn.pri::before{background:var(--c-text)}
+.btn.pri:hover,.btn.pri:focus-visible{background:linear-gradient(180deg,var(--c-accent-h),var(--c-accent));color:var(--c-bg)}
+.btn.sm{padding:0 8px}
+
+/* a short wash of oil colour lifts off the screen when either page opens */
+html::after{content:"";position:fixed;inset:0;z-index:2147483000;pointer-events:none;
+  background:
+    radial-gradient(circle at 20% 90%,#8f2415 0,transparent 50%),
+    radial-gradient(circle at 80% 70%,#e07a1f 0,transparent 45%),
+    radial-gradient(circle at 40% 30%,#f2cd7a 0,transparent 50%),
+    radial-gradient(circle at 90% 10%,#1f6f7a 0,transparent 40%),#120d09;
+  animation:kv-wash .95s cubic-bezier(.76,0,.24,1) both}
+@keyframes kv-wash{from{transform:translateY(0)}to{transform:translateY(-101%)}}
+@media (prefers-reduced-motion:reduce){html::after{display:none}#bar::after{animation:none}.btn::before{transition:none}}
