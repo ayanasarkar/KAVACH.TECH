@@ -20,11 +20,11 @@
   --c-accent:#c8374a;--c-accent-h:#e0485c;--c-on-accent:#fff8ee;--c-link:#f2cd7a;
   --c-soft:#3d1d22;--c-soft-t:#f2cd7a;
   --c-ok-bg:#17342a;--c-ok:#8fe0b5;--c-warn-bg:#3b2d12;--c-warn:#f2cc7a;--c-bad-bg:#3d1b1f;--c-bad:#ff9aa3;
-  --c-shadow:0 1px 2px #0006,0 10px 34px #0008;--c-scrim:#000000b3;
+  --c-shadow:0 1px 2px #0006,0 10px 34px #0008;--c-scrim:#0c0607ee;
   --blue:#f2cd7a;                                      /* style.css uses this for headings and links in dark mode: gold leaf */
 }
 /* the 3D viewport is always dark: oxblood ground, peacock hosts, vermilion findings */
-#stage{--bg:#140a0c;--fg:#f6ebe9;--dim:#d0b9b8;--dim2:#a88f91;--bd:#3a2226;--bd2:#5a3339;--blue:#5fc0c9;--green:#8fe0b5;--yellow:#f2cc7a;--red:#ee6a55;--crit:#ff9aa3;--cyan:#d0b9b8;--ink:#140a0c;background:#140a0c;color:#f6ebe9}
+#stage{--bg:#140a0c;--fg:#f6ebe9;--dim:#d0b9b8;--dim2:#a88f91;--bd:#3a2226;--bd2:#5a3339;--blue:#d9a441;--green:#8fe0b5;--yellow:#f2cc7a;--red:#ee6a55;--crit:#ff9aa3;--cyan:#d0b9b8;--ink:#140a0c;background:#140a0c;color:#f6ebe9}
 
 /* ---- top bar: painted wash, a live oil-paint कवच, one slow ribbon underneath ---- */
 #bar{position:relative;height:44px;background:linear-gradient(90deg,color-mix(in srgb,var(--c-accent) 16%,var(--c-bg)),var(--c-bg) 45%,color-mix(in srgb,#1f6f7a 14%,var(--c-bg)))}
