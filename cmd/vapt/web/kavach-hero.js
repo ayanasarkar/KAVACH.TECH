@@ -1,9 +1,9 @@
 /* KAVACH painted hero + interlude. Load in <head> WITHOUT defer. Needs kavach-hero.css.
-   1. Hero: the wordmark is brushed on like a film title; vermilion powder floats up and flees the cursor.
+   1. Hero: a dark oil veil is dragged away in bristle strokes, and the wordmark resolves out of wet paint like a film title; vermilion powder floats up and flees the cursor.
    2. Interlude (before Act 04): your video, repainted live in WebGL as oil paint. It opens like a wet brush
       stroke as you scroll in; drag the mouse across it and the paint smears.
    3. Headings smear sideways while you scroll fast, then settle.
-   4. A wet brush follows the mouse in the open space between panes.
+   4. Karna's armour: a pinned scroll scene (Indra, disguised, asks for the kavach) that maps the myth to prompt injection.
    Video: cmd/vapt/web/kavach-epic.mp4 (missing file = no interlude). Override: window.KV_VIDEO = 'x.mp4'.
    To undo: delete the kavach-hero.js <script> and the kavach-hero.css <link> from landing.html. */
 (function () {
@@ -130,6 +130,7 @@
     document.body.insertAdjacentHTML('beforeend', '<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>' +
       '<filter id="kv-rough" x="-5%" y="-5%" width="110%" height="110%"><feTurbulence type="fractalNoise" baseFrequency=".03" numOctaves="2" seed="3" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="7" xChannelSelector="R" yChannelSelector="G"/></filter>' +
       '<filter id="kv-smear" x="-8%" y="-30%" width="116%" height="160%"><feTurbulence type="fractalNoise" baseFrequency=".003 .045" numOctaves="1" seed="11" result="n"/><feDisplacementMap id="kv-smear-d" in="SourceGraphic" in2="n" scale="0" xChannelSelector="R" yChannelSelector="G" result="d"/><feGaussianBlur in="d" stdDeviation=".5 .15"/></filter>' +
+      '<filter id="kv-wet" x="-10%" y="-20%" width="120%" height="140%"><feTurbulence type="fractalNoise" baseFrequency=".008 .035" numOctaves="2" seed="8" result="n"/><feDisplacementMap id="kv-wet-d" in="SourceGraphic" in2="n" scale="0" xChannelSelector="R" yChannelSelector="G"/><feGaussianBlur id="kv-wet-b" stdDeviation="0"/></filter>' +
       '</defs></svg>');
   }
 
@@ -140,11 +141,12 @@
     function firstContent() { for (var n = wm.firstChild; n; n = n.nextSibling) { if (n.nodeType === 1 || (n.nodeType === 3 && n.nodeValue.trim())) return n; } return wm; }
     function start() {
       var rg = document.createRange(); rg.selectNodeContents(firstContent());
-      var tr = rg.getBoundingClientRect(), el = wm.getBoundingClientRect(), hr = hero.getBoundingClientRect(), x0 = tr.left - el.left, tw = tr.width, t0 = performance.now(), DUR = 2600;
-      wm.classList.add('kv-writing');
+      var tr = rg.getBoundingClientRect(), el = wm.getBoundingClientRect(), hr = hero.getBoundingClientRect(), x0 = tr.left - el.left, tw = tr.width, t0 = performance.now(), DUR = 3400;
+      veil(); wm.classList.add('kv-writing');
       (function step(now) {
         var k = Math.min(1, (now - t0) / DUR), p = k < .5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2, edge = x0 - 10 + p * (tw + 90);
         wm.style.setProperty('--w', edge + 'px');
+        var wl = (1 - p) * (1 - p); document.getElementById('kv-wet-d').setAttribute('scale', (wl * 110).toFixed(1)); document.getElementById('kv-wet-b').setAttribute('stdDeviation', (wl * 9).toFixed(2) + ' ' + (wl * 2).toFixed(2));
         var ex = Math.min(x0 + tw, Math.max(x0, edge - 35)) + el.left - hr.left;
         for (var i = 0; i < 4; i++) pw.spawn(ex, tr.top - hr.top + Math.random() * tr.height, true);
         if (k < 1) requestAnimationFrame(step);
@@ -238,43 +240,55 @@
     })();
   }
 
-  /* ================= wet brush that follows the mouse ================= */
-  function brush() {
-    var cv = document.createElement('canvas'), g = cv.getContext('2d'), W = 0, H = 0;
-    cv.id = 'kv-brush'; cv.setAttribute('aria-hidden', 'true'); document.body.appendChild(cv);
-    function size() { W = cv.width = innerWidth; H = cv.height = innerHeight; }
-    size(); addEventListener('resize', size);
-    var PAL = [[224, 72, 92], [200, 55, 74], [224, 122, 31], [242, 205, 122], [176, 92, 168]], col = PAL[0], lx = null, ly = null, lt = 0, vx = 0, vy = 0, moving = 0, tk = 0;
-    function stroke(x0, y0, x1, y1, L) {
-      var nx = -(y1 - y0) / L, ny = (x1 - x0) / L, n = 7, w = clamp(L * .12, 3, 16);
-      g.lineCap = 'round';
-      for (var i = 0; i < n; i++) {
-        var o = (i / (n - 1) - .5) * w * 2 + (Math.random() - .5) * 2, j = .75 + Math.random() * .5;
-        g.strokeStyle = 'rgba(' + Math.min(255, col[0] * j | 0) + ',' + Math.min(255, col[1] * j | 0) + ',' + Math.min(255, col[2] * j | 0) + ',' + (.16 + Math.random() * .2) + ')';
-        g.lineWidth = .8 + Math.random() * 2.6;
-        g.beginPath(); g.moveTo(x0 + nx * o, y0 + ny * o); g.lineTo(x1 + nx * o + (Math.random() - .5) * 2, y1 + ny * o + (Math.random() - .5) * 2); g.stroke();
-      }
+  /* ================= movie entry: oil veil dragged away in gold-edged bristle strokes ================= */
+  function veil() {
+    var cv = document.createElement('canvas'), g = cv.getContext('2d'), W = cv.width = innerWidth, H = cv.height = innerHeight, N = 12, B = [], t0 = performance.now();
+    cv.setAttribute('aria-hidden', 'true'); cv.style.cssText = 'position:fixed;left:0;top:0;width:100vw;height:100vh;z-index:70;pointer-events:none'; document.body.appendChild(cv);
+    g.fillStyle = '#0e0609'; g.fillRect(0, 0, W, H);
+    for (var i = 0; i < N; i++) B.push({ y: (i + .5) * H / N, h: H / N, d: i * .045 + Math.random() * .25, x: -60 });
+    (function f(now) {
+      var k = (now - t0) / 2400;
+      B.forEach(function (b) {
+        var p = clamp((k - b.d) / .62, 0, 1), nx = -60 + (1 - Math.pow(1 - p, 3)) * (W + 220);
+        if (nx <= b.x) return;
+        g.globalCompositeOperation = 'destination-out'; g.lineCap = 'round';
+        for (var j = 0; j < 7; j++) { var y = b.y + (j - 3) * b.h / 6.5 + (Math.random() - .5) * 5; g.lineWidth = b.h / 5 + Math.random() * 6; g.beginPath(); g.moveTo(b.x - 4, y); g.lineTo(nx, y + (Math.random() - .5) * 6); g.stroke(); }
+        if (p < 1) { g.globalCompositeOperation = 'source-over'; g.strokeStyle = 'rgba(242,205,122,.85)'; g.lineWidth = 3; g.beginPath(); g.moveTo(nx + 3, b.y - b.h * .45); g.lineTo(nx + 3 + (Math.random() - .5) * 8, b.y + b.h * .45); g.stroke(); }
+        b.x = nx;
+      });
+      if (k < 1.4) requestAnimationFrame(f); else cv.remove();
+    })(t0);
+  }
+
+  /* ================= Karna's armour: the myth as a prompt-injection parable ================= */
+  function karna() {
+    var at = document.getElementById('guard'); if (!at) return;
+    var s = document.createElement('section'), rays = '', i; s.className = 'kv-kn'; s.id = 'kv-karna'; s.setAttribute('aria-label', 'Karna and the armour');
+    for (i = 0; i < 36; i++) rays += '<line x1="0" y1="-132" x2="0" y2="' + -(i % 3 ? 150 : 176) + '" transform="rotate(' + i * 10 + ')"/>';
+    var T = [['कर्ण किसी याचक को मना नहीं करते थे।', 'Karna never turned away anyone who asked.'],
+      ['इन्द्र ब्राह्मण का वेश धरकर आए और उनसे कवच माँग लिया।', 'Indra arrived disguised as a Brahmin and asked for the armour.'],
+      ['जो हर माँग मान ले, वह कर्ण है। कवच माँग को परखता है।', 'An agent that obeys every request is Karna at the door. Kavach checks the request first.']];
+    s.innerHTML = '<div class="kv-kn-stage"><svg class="kv-kn-art" viewBox="-200 -200 400 400" aria-hidden="true"><g id="kv-kn-rays">' + rays + '</g><circle id="kv-kn-r1" r="112" transform="rotate(-90)"/><circle id="kv-kn-r2" r="96" transform="rotate(-90)"/><text class="kv-kn-t" y="22" text-anchor="middle" lang="hi">कवच</text></svg><div class="kv-kn-txt">' +
+      T.map(function (t) { return '<p class="kv-kn-p"><b lang="hi">' + t[0] + '</b><span>' + t[1] + '</span></p>'; }).join('') + '</div></div>';
+    at.parentNode.insertBefore(s, at);
+    if (RM) return;
+    var P = s.querySelectorAll('.kv-kn-p'), R = s.querySelector('#kv-kn-rays'), A = [[s.querySelector('#kv-kn-r1'), 703.7], [s.querySelector('#kv-kn-r2'), 603.2]], X = s.querySelector('.kv-kn-t'), C = [.12, .5, .88], q = 0;
+    function upd() {
+      q = 0; var b = s.getBoundingClientRect(), p = clamp(-b.top / (b.height - innerHeight), 0, 1), gp = Math.sin(Math.PI * clamp((p - .3) / .4, 0, 1));
+      P.forEach(function (n, i) { var d = p - C[i]; n.style.opacity = clamp(1.6 - Math.abs(d) * 6, 0, 1).toFixed(2); n.style.transform = 'translateY(' + (-d * 70).toFixed(1) + 'px)'; });
+      R.setAttribute('transform', 'rotate(' + (p * 80).toFixed(1) + ') scale(' + (1 + gp * .3).toFixed(3) + ')'); R.style.opacity = (1 - gp * .85).toFixed(2);
+      A.forEach(function (a) { a[0].setAttribute('stroke-dasharray', (a[1] * (1 - .55 * gp)).toFixed(1) + ' ' + a[1]); });
+      X.style.opacity = (1 - gp * .9).toFixed(2);
     }
-    addEventListener('pointermove', function (e) {
-      var t = performance.now(); if (t - lt > 450) col = PAL[Math.random() * PAL.length | 0]; lt = t;
-      if (lx !== null) { var dx = e.clientX - lx, dy = e.clientY - ly, L = Math.hypot(dx, dy); if (L > 1.5 && L < 160) { stroke(lx, ly, e.clientX, e.clientY, L); vx = dx; vy = dy; moving = 6; } }
-      lx = e.clientX; ly = e.clientY;
-    }, { passive: true });
-    (function loop() {
-      requestAnimationFrame(loop); if (document.hidden) return; tk++;
-      if (moving > 0) {   /* drag the wet paint along: copy a patch around the pointer, shifted with the motion */
-        moving--; var S = 120, sx = clamp(lx - S / 2, 0, W - S), sy = clamp(ly - S / 2, 0, H - S);
-        g.globalAlpha = .9; g.drawImage(cv, sx, sy, S, S, sx + vx * .7, sy + vy * .7, S, S); g.globalAlpha = 1;
-      }
-      if (tk % 2 === 0) { g.globalCompositeOperation = 'destination-out'; g.fillStyle = 'rgba(0,0,0,.025)'; g.fillRect(0, 0, W, H); g.globalCompositeOperation = 'source-over'; }
-    })();
+    addEventListener('scroll', function () { if (!q) { q = 1; requestAnimationFrame(upd); } }, { passive: true }); addEventListener('resize', upd); upd();
   }
 
   document.addEventListener('DOMContentLoaded', function () {
     defs();
     var hero = document.getElementById('home'), wm = hero && hero.querySelector('.wm');
     if (hero && wm) heroPart(hero, wm); else de.classList.remove('kv-write');
+    karna();
     interlude();
-    if (!RM) { scrollSmear(); if (matchMedia('(pointer:fine)').matches) brush(); }
+    if (!RM) scrollSmear();
   });
 })();

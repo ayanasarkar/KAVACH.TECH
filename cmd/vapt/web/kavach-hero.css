@@ -76,10 +76,33 @@ html.kv-write #home .wm:not(.kv-writing) { visibility: hidden; }
 /* ---------- 4. Headings smear sideways while scrolling fast ---------- */
 .kv-smearing { filter: url(#kv-smear); }
 
-/* ---------- 5. Wet brush that follows the mouse (sits between the 3D scene and your panes) ---------- */
-#kv-brush { position: fixed; left: 0; top: 0; width: 100vw; height: 100vh; pointer-events: none; z-index: 1; }
+
+/* ---------- 5. Wordmark resolves out of wet paint (filter values are driven by kavach-hero.js) ---------- */
+#home .wm.kv-writing { filter: url(#kv-wet); }
+
+/* ---------- 6. Karna's armour, pinned scroll scene ---------- */
+.kv-kn { position: relative; height: 300vh; z-index: 2; }
+.kv-kn-stage { position: sticky; top: 0; height: 100vh; display: grid; grid-template-columns: 1fr 1fr; align-items: center; gap: 4vw; padding: 0 7vw; }
+.kv-kn-art { width: min(46vw, 70vh); justify-self: center; overflow: visible; filter: url(#kv-rough) drop-shadow(0 0 40px rgba(217, 164, 65, .25)); }
+.kv-kn-art circle, .kv-kn-art line { fill: none; stroke-linecap: round; }
+#kv-kn-r1 { stroke: #f2cd7a; stroke-width: 4; }
+#kv-kn-r2 { stroke: #c8374a; stroke-width: 2; }
+.kv-kn-art line { stroke: #d9a441; stroke-width: 2.2; }
+.kv-kn-t { fill: #f2cd7a; font: 400 64px var(--deva, 'Yatra One', serif); }
+.kv-kn-txt { display: grid; }
+.kv-kn-p { grid-area: 1 / 1; align-self: center; margin: 0; opacity: 0; will-change: opacity, transform; }
+.kv-kn-p b { display: block; font: 400 clamp(1.7rem, 3.2vw, 2.9rem)/1.3 var(--deva, 'Yatra One', serif); color: #f2cd7a; }
+.kv-kn-p span { display: block; margin-top: .9rem; max-width: 34ch; font: 500 clamp(1rem, 1.3vw, 1.2rem)/1.5 var(--sans, system-ui, sans-serif); color: rgba(255, 244, 230, .85); }
+@media (max-width: 760px) {
+  .kv-kn-stage { grid-template-columns: 1fr; align-content: center; gap: 2vh; }
+  .kv-kn-art { width: min(70vw, 38vh); }
+}
 
 @media (prefers-reduced-motion: reduce) {
+  .kv-kn { height: auto; }
+  .kv-kn-stage { position: static; height: auto; padding-block: 12vh; }
+  .kv-kn-txt { display: block; }
+  .kv-kn-p { opacity: 1; margin-bottom: 2rem; }
   html.kv-write #home .wm { visibility: visible; }
   .kv-smearing { filter: none; }
 }
