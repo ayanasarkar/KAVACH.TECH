@@ -126,6 +126,8 @@ const (
 	maxSessionsPer = 10
 	minPassword    = 10
 	maxPassword    = 256
+	regThreshold   = 5   // sign-up attempts from one address before it is paused
+	maxAccounts    = 200 // self-service sign-up stops here; an administrator can still add people
 )
 
 var nameRe = regexp.MustCompile(`^[a-z0-9][a-z0-9._-]{2,31}$`)
@@ -599,6 +601,52 @@ func (s *Store) AddUser(actor Principal, name, display, pw string, role Role) (P
 	pub := pubOf(u)
 	s.mu.Unlock()
 	s.log.Append(actor.Name, "account_created", "account created for "+name, map[string]string{"role": string(role)})
+	return pub, nil
+}
+
+// Register is open self-service sign-up. It can only ever create a viewer, who may read, ask the grounded chat questions
+// and dry-run the scope guard, and who is granted no targets. It is rate-limited per address and capped in total.
+// The first account is never created here: that is Setup, from the machine itself.
+func (s *Store) Register(name, display, pw, ip string) (Public, error) {
+	name = NormName(name)
+	if err := CheckName(name); err != nil {
+		return Public{}, err
+	}
+	if err := CheckPassword(name, pw); err != nil {
+		return Public{}, err
+	}
+	rk := "reg:" + ip
+	s.mu.Lock()
+	if w := s.lockedLocked(rk); w > 0 { // checked before the costly hash, so this cannot be used to burn CPU
+		s.mu.Unlock()
+		return Public{}, &LockedError{w}
+	}
+	s.failLocked(regThreshold, rk)
+	if len(s.users) == 0 {
+		s.mu.Unlock()
+		return Public{}, PolicyError("no administrator exists yet, so accounts cannot be created here")
+	}
+	if len(s.users) >= maxAccounts {
+		s.mu.Unlock()
+		return Public{}, PolicyError("sign-up is full; ask an administrator to add you")
+	}
+	s.mu.Unlock()
+	h := s.hash(pw)
+	s.mu.Lock()
+	if _, dup := s.users[name]; dup {
+		s.mu.Unlock()
+		return Public{}, PolicyError("that username is taken")
+	}
+	u := &User{Name: name, Display: clean(display, 40), Role: Viewer, Hash: h, Created: s.opt.Now().UTC()}
+	s.users[name] = u
+	if err := s.saveLocked(); err != nil {
+		delete(s.users, name)
+		s.mu.Unlock()
+		return Public{}, err
+	}
+	pub := pubOf(u)
+	s.mu.Unlock()
+	s.log.Append(name, "account_registered", "viewer account created by self-service sign-up", map[string]string{"role": string(Viewer), "ip": clean(ip, 45)})
 	return pub, nil
 }
 

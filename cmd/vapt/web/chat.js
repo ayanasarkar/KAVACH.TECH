@@ -56,20 +56,23 @@ async function api(path, opts = {}) {
 // ------------------------------------------------------------------ sign-in
 // KAVACH keeps its own accounts. The server sets an HttpOnly session cookie; the page holds no secret. Who you are comes from
 // that session, never from a field in a request, so an approval is always recorded under the account that made it.
-let gateMode = 'login', gateBusy = false;
+let gateMode = 'login', gateBusy = false, signupOpen = false;
 const GATE = {
-  login: { h: 'Sign in', p: 'Every approval and denial is recorded in the tamper-evident audit log under your account.', go: 'Sign in', busy: 'Signing in…', note: 'Sessions end after 2 hours without activity.' },
+  login: { h: 'Sign in', p: 'Every approval and denial is recorded in the tamper-evident audit log under your account.', go: 'Sign in', busy: 'Signing in…', alt: 'Create an account', note: 'Sessions end after 2 hours without activity.' },
+  register: { h: 'Create your account', p: 'New accounts are viewers: you can read assessments, ask questions and test the scope guard. An administrator can give you more.', go: 'Create account', busy: 'Creating…', alt: 'I already have an account', note: 'At least 10 characters, and not your username or a common word.' },
   setup: { h: 'Create your account', p: 'This is the first run, so this account becomes the administrator. It is stored only on this machine, and the password is kept as a salted hash.', go: 'Create account', busy: 'Creating…', note: 'At least 10 characters, and not your username or a common word.' },
 };
 function gateErr(msg) { const e = $('g-err'); e.textContent = msg || ''; e.hidden = !msg; }
 function setLocked(on) { $('side').inert = on; $('main').inert = on; }
 function showGate(msg, mode) {
   if (mode) gateMode = mode;
-  const g = GATE[gateMode], setup = gateMode === 'setup';
+  const g = GATE[gateMode], make = gateMode !== 'login', alt = $('g-alt');
+  $('gate').dataset.mode = gateMode;
   closeAcct(); palClose();
   $('g-h').textContent = g.h; $('g-p').textContent = g.p; $('g-go').textContent = g.go; $('g-note').textContent = g.note;
-  $('g-pw').autocomplete = setup ? 'new-password' : 'current-password';
-  $('g-pw2-l').hidden = !setup; $('g-disp-l').hidden = !setup;
+  $('g-pw').autocomplete = make ? 'new-password' : 'current-password';
+  $('g-pw2-l').hidden = !make; $('g-disp-l').hidden = !make;
+  alt.hidden = gateMode === 'setup' || !signupOpen; alt.textContent = g.alt || '';
   $('g-pw').value = ''; $('g-pw2').value = ''; gateErr(msg);
   setLocked(true); $('gate').hidden = false;
   setTimeout(() => $($('g-name').value ? 'g-pw' : 'g-name').focus(), 30);
@@ -82,21 +85,22 @@ $('g-eye').addEventListener('click', () => {
 });
 $('g-form').addEventListener('submit', async (e) => {
   e.preventDefault(); if (gateBusy) return;
-  const setup = gateMode === 'setup', name = $('g-name').value.trim(), pw = $('g-pw').value;
+  const make = gateMode !== 'login', name = $('g-name').value.trim(), pw = $('g-pw').value;
   if (!name || !pw) { gateErr('Enter your username and password.'); return; }
-  if (setup && pw !== $('g-pw2').value) { gateErr('The two passwords do not match.'); $('g-pw2').focus(); return; }
+  if (make && pw !== $('g-pw2').value) { gateErr('The two passwords do not match.'); $('g-pw2').focus(); return; }
   gateBusy = true; $('g-go').disabled = true; $('g-go').textContent = GATE[gateMode].busy; gateErr('');
   try {
-    const r = await fetch(setup ? '/api/auth/setup' : '/api/auth/login', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(setup ? { name, display: $('g-disp').value.trim(), password: pw } : { name, password: pw }) });
+    const r = await fetch('/api/auth/' + (gateMode === 'login' ? 'login' : gateMode), { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(make ? { name, display: $('g-disp').value.trim(), password: pw } : { name, password: pw }) });
     const d = await r.json().catch(() => ({}));
-    if (!r.ok) { gateErr(d.error || 'Could not sign in.'); $('g-pw').value = ''; $('g-pw2').value = ''; $('g-pw').focus(); return; }
+    if (!r.ok) { gateErr(d.error || (make ? 'Could not create the account.' : 'Could not sign in.')); $('g-pw').value = ''; $('g-pw2').value = ''; $('g-pw').focus(); return; }
     S.user = d.user; $('g-pw').value = ''; $('g-pw2').value = ''; hideGate(); await enter();
   } catch { gateErr('Could not reach the KAVACH server. Is it still running?'); }
   finally { gateBusy = false; $('g-go').disabled = false; $('g-go').textContent = GATE[gateMode].go; }
 });
 const who = () => (S.user && S.user.name) || 'analyst';
 const shown = () => (S.user && S.user.display) || who();
-async function authStatus() { try { return await (await fetch('/api/auth/status', { cache: 'no-store' })).json(); } catch { return null; } }
+async function authStatus() { try { const st = await (await fetch('/api/auth/status', { cache: 'no-store' })).json(); signupOpen = !!st.signup_open; return st; } catch { return null; } }
+$('g-alt').addEventListener('click', () => { const name = $('g-name').value; showGate('', gateMode === 'login' ? 'register' : 'login'); $('g-name').value = name; });
 function sessionEnded(msg) {
   clearTimeout(S.timer);
   if (!$('gate').hidden) return;

@@ -407,3 +407,32 @@ func TestConcurrentUse(t *testing.T) {
 	}
 	wg.Wait()
 }
+
+// Self-service sign-up can only make a viewer, never the first account, and is paused after repeated attempts.
+func TestRegisterMakesViewersOnly(t *testing.T) {
+	s, _, _ := open(t)
+	if _, err := s.Register("newcomer", "", "a-long-enough-pass", "10.0.0.1"); err == nil {
+		t.Fatal("sign-up must not create the first account")
+	}
+	if _, err := s.Setup("boss", "", "an-admin-long-phrase"); err != nil {
+		t.Fatal(err)
+	}
+	p, err := s.Register("Newcomer", "New Person", "a-long-enough-pass", "10.0.0.2")
+	if err != nil || p.Role != Viewer || p.Name != "newcomer" {
+		t.Fatalf("got %+v, %v", p, err)
+	}
+	if _, err := s.Register("newcomer", "", "a-long-enough-pass", "10.0.0.3"); err == nil {
+		t.Fatal("duplicate username accepted")
+	}
+	if _, err := s.Register("weakling", "", "short", "10.0.0.4"); err == nil {
+		t.Fatal("weak password accepted")
+	}
+	var locked *LockedError
+	var err2 error
+	for i := 0; i < regThreshold+2; i++ {
+		_, err2 = s.Register("spam"+string(rune('a'+i)), "", "a-long-enough-pass", "10.9.9.9")
+	}
+	if !errors.As(err2, &locked) {
+		t.Fatalf("expected the address to be paused, got %v", err2)
+	}
+}

@@ -153,3 +153,13 @@ body.is-empty #stage::after{content:"यतो धर्मस्ततो ज�
 #g-form #g-go:hover::before,#g-form #g-go:focus-visible::before{background:linear-gradient(180deg,#f6dd96,#d9a441)}
 #g-form .g-note,#g-note{margin-top:2px}
 @media (prefers-reduced-motion:reduce){#g-form::before,#g-form::after,#g-form>*,#g-form h1::before{animation:none}}
+
+/* v5: Create account. A quiet second door beneath the shield: gold hairline, square corners, the same gold sweep the fields use. */
+#gate[data-mode="register"] #g-form h1::before,#gate[data-mode="setup"] #g-form h1::before{content:"नया खाता" / ""}
+#g-form .g-alt{align-self:center;width:min(100%,250px);margin-top:2px;padding:11px 14px;font:500 13.5px/1.2 var(--c-sans);color:var(--kv-ink);cursor:pointer;
+  background:transparent linear-gradient(90deg,#c8374a,#e07a1f,#f2cd7a) no-repeat 0 100%/0 2px;border:1px solid color-mix(in srgb,#d9a441 60%,transparent);border-radius:0;
+  transition:background-size .5s cubic-bezier(.76,0,.24,1),border-color .3s,background-color .3s}
+#g-form .g-alt:hover,#g-form .g-alt:focus-visible{background-size:100% 2px;border-color:#d9a441;background-color:color-mix(in srgb,#d9a441 14%,transparent)}
+#g-form .g-alt:focus-visible{outline:2px solid #d9a441;outline-offset:3px}
+#g-form .g-alt[hidden]{display:none}
+@media (prefers-reduced-motion:reduce){#g-form .g-alt{transition:none}}

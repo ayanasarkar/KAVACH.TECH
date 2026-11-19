@@ -22,7 +22,7 @@ const cookieName = "kavach_session"
 type ctxKey struct{}
 
 // Routes that work without a session. Everything else under /api/ needs one.
-var publicAPI = map[string]bool{"/api/auth/status": true, "/api/auth/login": true, "/api/auth/setup": true}
+var publicAPI = map[string]bool{"/api/auth/status": true, "/api/auth/login": true, "/api/auth/setup": true, "/api/auth/register": true}
 
 func principalOf(r *http.Request) (auth.Principal, bool) {
 	p, ok := r.Context().Value(ctxKey{}).(auth.Principal)
@@ -103,6 +103,7 @@ type authState struct {
 	SetupRequired bool            `json:"setup_required"`
 	User          *auth.Principal `json:"user"`
 	MinPassword   int             `json:"min_password"`
+	SignupOpen    bool            `json:"signup_open"`
 }
 
 func (s *server) authError(w http.ResponseWriter, err error) {
@@ -133,7 +134,7 @@ func (s *server) authAPI(w http.ResponseWriter, r *http.Request) {
 	post := r.Method == http.MethodPost
 	switch {
 	case path == "status" && r.Method == http.MethodGet:
-		st := authState{SetupRequired: !s.auth.HasUsers(), MinPassword: 10}
+		st := authState{SetupRequired: !s.auth.HasUsers(), MinPassword: 10, SignupOpen: s.openSignup}
 		if p, _, ok := s.session(r); ok {
 			st.User = &p
 		}
@@ -155,6 +156,22 @@ func (s *server) authAPI(w http.ResponseWriter, r *http.Request) {
 		}
 		s.startSession(w, r, in.Name, in.Password)
 
+	case path == "register" && post:
+		if !s.openSignup {
+			fail(w, 403, "sign-up is closed here; ask an administrator to add you")
+			return
+		}
+		var in struct{ Name, Display, Password string }
+		if json.NewDecoder(r.Body).Decode(&in) != nil {
+			fail(w, 400, "bad JSON")
+			return
+		}
+		if _, err := s.auth.Register(in.Name, in.Display, in.Password, clientIP(r)); err != nil {
+			s.authError(w, err)
+			return
+		}
+		s.startSession(w, r, in.Name, in.Password)
+
 	case path == "login" && post:
 		var in struct{ Name, Password string }
 		if json.NewDecoder(r.Body).Decode(&in) != nil {
@@ -168,7 +185,7 @@ func (s *server) authAPI(w http.ResponseWriter, r *http.Request) {
 			s.auth.Logout(c.Value)
 		}
 		setSession(w, r, "", -1)
-		jsonOut(w, 200, authState{SetupRequired: !s.auth.HasUsers(), MinPassword: 10})
+		jsonOut(w, 200, authState{SetupRequired: !s.auth.HasUsers(), MinPassword: 10, SignupOpen: s.openSignup})
 
 	case path == "password" && post:
 		p, tok, ok := s.session(r)
@@ -267,5 +284,5 @@ func (s *server) startSession(w http.ResponseWriter, r *http.Request, name, pw s
 		return
 	}
 	setSession(w, r, tok, 12*3600)
-	jsonOut(w, 200, authState{User: &p, MinPassword: 10})
+	jsonOut(w, 200, authState{User: &p, MinPassword: 10, SignupOpen: s.openSignup})
 }
