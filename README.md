@@ -100,6 +100,22 @@ vapt-agent/
 | **Burp Suite** | 🔵 Import | XML issue export | File import parser for XML findings exports. |
 | **OpenVAS / Greenbone** | 🔵 Import | Report XML | Report import parser. |
 
+### Known limitations, assumptions and unsupported scenarios
+
+| Area | Status |
+| :--- | :--- |
+| Nessus live API | Not implemented. Import of a `.nessus` v2 export only. |
+| OpenVAS / Greenbone live session (GMP) | Planned, not implemented. Import of an XML report only. |
+| Burp Suite REST / GraphQL APIs | Not implemented. Import of an XML issue export only. |
+| Nmap, Nikto, OWASP ZAP | Live only when the tool is installed (Nmap, Nikto) or the ZAP daemon is reachable. Otherwise the step is skipped and the gap is listed under the report's limitations. |
+| Metasploit | Module `check` only, one approval per run. Exploitation (`exploit`/`run`), payload selection and autonomous use are unsupported by design. Without `msfconsole` the recorded verdict is `undetermined`. |
+| Scope | Lab-only by default: public addresses and CIDRs are refused unless the organiser authorises them (`allow_non_lab`) or the hostname is under an explicitly authorised domain tree. IPv4 CIDRs larger than `/16` are refused. |
+| Built-in checks | Read-only and shallow: HTTP configuration, banners and exposure. They do not test authentication, business logic or input handling. |
+| Imports | Commercial-tool findings reflect the supplied export and are not re-run. Licences remain the analyst's own. |
+| Confidence values | Calibrated heuristics from detection basis and cross-tool corroboration, not statistical probabilities. |
+| Not implemented | MITRE ATT&CK and NIST CSF 2.0 mapping, SARIF export (the outputs are the PDF report and the JSON assessment state), retest and change comparison. |
+| Assumption | Every target is an organiser-authorised lab or sandbox system. The agent cannot verify authorisation; it enforces only what the analyst registered. |
+
 ---
 
 ## 🔒 How Kavach Keeps the AI Honest
@@ -136,7 +152,9 @@ Kavach automatically selects the best available engine:
 ```bash
 # Option A: Use Anthropic Claude
 export ANTHROPIC_API_KEY="your-api-key"
-export VAPT_MODEL="claude-3-5-sonnet-20241022" # Optional
+export VAPT_MODEL="claude-sonnet-5-5"   # Optional; this is the default
+# Optional: send API calls somewhere else (a local test server or a gateway). Unset means api.anthropic.com.
+# export VAPT_ANTHROPIC_URL="http://127.0.0.1:9999"
 
 # Option B: Use Local Ollama
 export OLLAMA_MODEL="llama3"
@@ -150,8 +168,20 @@ export OLLAMA_URL="http://localhost:11434"
 
 ## 🧪 Testing & Automated Verification
 
-### Run Automated Headless Suite
-To run an end-to-end headless assessment and regenerate standard test outputs:
+### Smoke test (checks real outcomes, exits non-zero on any failure)
+Builds and starts the lab and a console on a free port, drives a full assessment through the API and checks scope
+refusal, the plan-approval gate, evidence and risk fields, the validation approve/deny paths, the audit chain
+(including tamper detection) and the PDF report. Run it from the repository root; it works on Windows, macOS and Linux.
+```bash
+go run ./cmd/smoke -spawn
+```
+Against a console that is already running: `go run ./cmd/smoke -url http://127.0.0.1:8787 -user NAME -pass PASSWORD`
+(pass `-data <dir>` as well to enable the raw-file and audit-file checks). With `ANTHROPIC_API_KEY` set and `-spawn`, it also
+checks that Claude really planned the run rather than the rules fallback.
+
+### Regenerate the sample outputs
+`scripts/demo.sh` drives one assessment and saves the PDF, state JSON, audit log and raw output to `samples/`. It prints
+success even if a step misbehaves, so use the smoke test above to check correctness.
 ```bash
 bash scripts/demo.sh
 ```

@@ -113,7 +113,7 @@ type Finding struct {
 	Confidence   float64     `json:"confidence"`
 	ConfLabel    string      `json:"confidence_label"`
 	Status       string      `json:"status"`     // confirmed | suspected | likely_false_positive
-	Validation   string      `json:"validation"` // not_validated | pending_approval | validated | validation_failed | declined
+	Validation   string      `json:"validation"` // not_validated | pending_approval | declined | validated_vulnerable | validation_negative | validation_inconclusive
 	Basis        Basis       `json:"basis"`
 	ExploitAvail string      `json:"exploit_available"` // yes | no | unknown (as reported by tools)
 	Risk         Risk        `json:"risk"`
