@@ -5,10 +5,10 @@ import * as THREE from 'three';
 import { OrbitControls } from './vendor/OrbitControls.js';
 
 const C = {
-  bg: 0x120d09, fg: 0xf3e7cd, dim: 0x5a4128, blue: 0x5fc0c9, cyan: 0xcdb98f,
-  green: 0x9fd9b0, yellow: 0xf2cc7a, red: 0xe0684a, crit: 0xff9a85, mag: 0xf3e7cd,
+  bg: 0x140a0c, fg: 0xf6ebe9, dim: 0x5a3339, blue: 0x5fc0c9, cyan: 0xd0b9b8,
+  green: 0x8fe0b5, yellow: 0xf2cc7a, red: 0xee6a55, crit: 0xff9aa3, mag: 0xf6ebe9,
 };
-const SEV = { critical: C.crit, high: C.red, medium: C.yellow, low: C.cyan, info: 0xcdb98f };
+const SEV = { critical: C.crit, high: C.red, medium: C.yellow, low: C.cyan, info: 0xd0b9b8 };
 const SEV_RANK = { critical: 4, high: 3, medium: 2, low: 1, info: 0 };
 const SHIELD_R = 9;
 

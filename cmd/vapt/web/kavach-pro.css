@@ -60,3 +60,19 @@ html.kv-pro .cta-nav:hover::before,
 html.kv-pro .cta-nav:focus-visible::before{transform:scaleX(1)}
 html.kv-pro .btn:not(#hold):not(#cr):focus-visible,
 html.kv-pro .cta-nav:focus-visible{outline:2px solid #f2cd7a;outline-offset:4px}
+
+/* ---- hero wordmark: the same oil paint as the opening, drifting slowly. The text stays real text, so it is still selectable. ---- */
+html.kv-pro .wm{
+  background:
+    radial-gradient(circle at 18% 78%,#c8374a 0,transparent 46%),
+    radial-gradient(circle at 70% 66%,#e07a1f 0,transparent 42%),
+    radial-gradient(circle at 44% 28%,#f2cd7a 0,transparent 48%),
+    radial-gradient(circle at 90% 22%,#1f9aa8 0,transparent 36%),
+    linear-gradient(to top,#a82a3b,#d9a441 58%,#f6ebe9);
+  background-size:190% 190%,170% 170%,210% 210%,180% 180%,100% 100%;
+  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent;
+  animation:kv-wm 11s ease-in-out infinite alternate}
+@keyframes kv-wm{
+  from{background-position:0% 0%,100% 100%,0% 100%,100% 0%,0 0}
+  to{background-position:100% 100%,0% 0%,100% 0%,0% 100%,0 0}}
+@media (prefers-reduced-motion:reduce){html.kv-pro .wm{animation:none}}
