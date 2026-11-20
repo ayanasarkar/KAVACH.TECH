@@ -696,6 +696,49 @@ func (s *Store) SetDisabled(actor Principal, name string, off bool) error {
 	return err
 }
 
+// SetRole lets an administrator change another account's role. Sessions are revoked so the new role applies at once.
+// An administrator cannot change their own role, and the last active administrator cannot be demoted.
+func (s *Store) SetRole(actor Principal, name string, role Role) error {
+	if err := s.adminOnly(actor); err != nil {
+		return err
+	}
+	if !role.valid() {
+		return PolicyError("role must be admin, analyst or viewer")
+	}
+	name = NormName(name)
+	s.mu.Lock()
+	u := s.users[name]
+	if u == nil {
+		s.mu.Unlock()
+		return ErrNoUser
+	}
+	if name == actor.Name {
+		s.mu.Unlock()
+		return PolicyError("you cannot change your own role")
+	}
+	if u.Role == Admin && role != Admin {
+		others := 0
+		for _, v := range s.users {
+			if v.Role == Admin && !v.Disabled && v.Name != name {
+				others++
+			}
+		}
+		if others == 0 {
+			s.mu.Unlock()
+			return PolicyError("the last active administrator cannot be demoted")
+		}
+	}
+	old := u.Role
+	u.Role = role
+	s.revokeLocked(name, "")
+	err := s.saveLocked()
+	s.mu.Unlock()
+	if err == nil {
+		s.log.Append(actor.Name, "role_changed", "role of "+name+" changed from "+string(old)+" to "+string(role), map[string]string{"role": string(role)})
+	}
+	return err
+}
+
 // ResetPassword lets an administrator set another account's password. That account is signed out everywhere.
 func (s *Store) ResetPassword(actor Principal, name, pw string) error {
 	if err := s.adminOnly(actor); err != nil {

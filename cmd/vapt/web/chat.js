@@ -183,7 +183,10 @@ function showEmpty(on) {
 async function send(text) {
   text = text.trim(); if (!text || S.busy) return;
   S.busy = true; $('send').disabled = true;
-  try { if (!S.id) await startAssessment(text); else await ask(text); } catch (e) { local({ kind: 'error', text: e.message }); }
+  try {
+    if (!S.id && S.user && S.user.role === 'viewer') throw new Error('You are signed in as a viewer, so you can ask questions about an existing assessment but cannot start one. Ask an administrator to make you an analyst (Account menu > People).');
+    if (!S.id) await startAssessment(text); else await ask(text);
+  } catch (e) { local({ kind: 'error', text: e.message }); }
   S.busy = false; $('send').disabled = false;
 }
 function showBatchReports(items) {
@@ -674,7 +677,10 @@ async function loadPeople() {
       el('span', { class: 'av', 'aria-hidden': 'true' }, (u.display || u.name).slice(0, 1).toUpperCase()),
       el('div', { class: 'm-id' }, el('b', {}, u.display || u.name), el('span', {}, `${u.name}, ${seen}`)),
       el('span', { class: 'tag' }, u.disabled ? 'disabled' : u.role),
-      me ? el('span', { class: 'm-fine' }, 'you') : el('div', { class: 'm-act' },
+      me ? el('span', { class: 'm-fine' }, 'you') : null,
+      me ? null : el('select', { 'aria-label': 'Role for ' + u.name, on: { change: (ev) => act(`/api/auth/users/${u.name}/role`, { role: ev.target.value }) } },
+        ...['viewer', 'analyst', 'admin'].map((r) => { const o = el('option', { value: r }, r); if (r === u.role) o.selected = true; return o; })),
+      me ? null : el('div', { class: 'm-act' },
         el('button', { class: 'lnk', type: 'button', on: { click: () => { setRow.hidden = !setRow.hidden; if (!setRow.hidden) pw.focus(); } } }, 'Reset password'),
         el('button', { class: 'lnk', type: 'button', on: { click: () => act(`/api/auth/users/${u.name}/${u.disabled ? 'enable' : 'disable'}`, {}) } }, u.disabled ? 'Enable' : 'Disable')),
       setRow));

@@ -238,6 +238,13 @@ func (s *server) authAPI(w http.ResponseWriter, r *http.Request) {
 		switch parts[2] {
 		case "disable", "enable":
 			err = s.auth.SetDisabled(p, parts[1], parts[2] == "disable")
+		case "role":
+			var in struct{ Role string }
+			if json.NewDecoder(r.Body).Decode(&in) != nil {
+				fail(w, 400, "bad JSON")
+				return
+			}
+			err = s.auth.SetRole(p, parts[1], auth.Role(in.Role))
 		case "password":
 			var in struct{ Password string }
 			if json.NewDecoder(r.Body).Decode(&in) != nil {
