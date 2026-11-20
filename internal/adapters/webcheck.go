@@ -99,6 +99,13 @@ func (w *WebCheck) Run(ctx context.Context, j Job) (Result, error) {
 	svc := model.Service{Host: host, Port: port, Proto: "tcp", State: "open", Name: bu.Scheme, Tool: "webcheck", Product: root.hdr.Get("Server"), Banner: fmt.Sprintf("HTTP %d title=%q", root.status, title)}
 	res.Services = append(res.Services, svc)
 
+	// A redirect (3xx) or an error page (4xx/5xx, e.g. a CDN's "origin unreachable" 523) describes the redirect
+	// or the error page, not the application, so a missing security header there is not evidence about the
+	// app. Absent-header findings are only raised on a 2xx response; the skip is recorded in the raw log.
+	headersJudgeable := absentHeaderChecksApply(root.status)
+	if !headersJudgeable {
+		emit(fmt.Sprintf("NOTE HTTP %d response: absent-header checks skipped (not an application page)", root.status))
+	}
 	type hdrCheck struct {
 		h, key, title, desc, fix string
 		cwe                      []string
@@ -119,6 +126,9 @@ func (w *WebCheck) Run(ctx context.Context, j Job) (Result, error) {
 			"An HTTPS response lacks HSTS, so browsers may be downgraded to HTTP.",
 			"Send 'Strict-Transport-Security: max-age=31536000; includeSubDomains'.", []string{"CWE-319"}, "low", true},
 	} {
+		if !headersJudgeable {
+			continue
+		}
 		if c.httpsOnly && bu.Scheme != "https" {
 			continue
 		}

@@ -36,8 +36,18 @@ func weakSite() http.Handler {
 		w.Header().Set("Server", "LabHTTPd/1.0")
 		fmt.Fprint(w, `<html><head><title>Index of /files/</title></head><body><h1>Index of /files/</h1><a href="backup.zip">backup.zip</a></body></html>`)
 	})
-	mux.HandleFunc("/.git/HEAD", func(w http.ResponseWriter, r *http.Request) { fmt.Fprint(w, "ref: refs/heads/main\n") })
+	mux.HandleFunc("/.git/HEAD", func(w http.ResponseWriter, r *http.Request) {
+		if labFixed() {
+			http.NotFound(w, r)
+			return
+		}
+		fmt.Fprint(w, "ref: refs/heads/main\n")
+	})
 	mux.HandleFunc("/.env", func(w http.ResponseWriter, r *http.Request) {
+		if labFixed() {
+			http.NotFound(w, r)
+			return
+		}
 		fmt.Fprint(w, "# LAB DEMO VALUES ONLY\nDB_PASSWORD=lab-demo-not-a-secret\nAPI_KEY=lab-demo-not-a-secret\n")
 	})
 	return mux
