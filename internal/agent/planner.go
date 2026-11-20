@@ -18,12 +18,12 @@ import (
 const maxRounds = 4
 
 type proposal struct {
-	Tool      string      `json:"tool"`
-	Target    string      `json:"target"`
-	Options   stepOptions `json:"options"`
-	Rationale string      `json:"rationale"`
-	Trigger   []string    `json:"trigger_evidence"`
-	Import    string      `json:"-"`
+	Tool      string       `json:"tool"`
+	Target    string       `json:"target"`
+	Options   stepOptions  `json:"options"`
+	Rationale string       `json:"rationale"`
+	Trigger   evidenceList `json:"trigger_evidence"`
+	Import    string       `json:"-"`
 }
 
 // stepOptions is how a model's "options" field for one step decodes. The schema asks
