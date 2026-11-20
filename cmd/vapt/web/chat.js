@@ -494,7 +494,7 @@ function findingsCard(a) {
 function reportCard() {
   return card('', 'Report ready', badge('PDF', 'soft'),
     el('div', { class: 'note' }, 'Executive summary, methodology and rules of engagement, severity distribution, findings with evidence and confidence, remediation, and limitations. Observed evidence and AI inference are labelled apart.'),
-    el('div', { class: 'acts2' }, el('a', { class: 'btn pri sm', href: `/api/assessments/${S.id}/report.pdf`, download: '' }, ic('doc', 16), 'Download PDF'), el('button', { class: 'lnk', type: 'button', on: { click: () => { $('cmd').value = 'Summarise what is most urgent to fix and why'; autosize(); $('cmd').focus(); } } }, 'Ask what to fix first')));
+    el('div', { class: 'acts2' }, el('a', { class: 'btn pri sm', href: `/api/assessments/${S.id}/report.pdf`, download: '' }, ic('doc', 16), 'Download PDF'), el('a', { class: 'btn sm', href: `/api/assessments/${S.id}/report.sarif`, download: '' }, 'SARIF'), el('button', { class: 'lnk', type: 'button', on: { click: () => { $('cmd').value = 'Summarise what is most urgent to fix and why'; autosize(); $('cmd').focus(); } } }, 'Ask what to fix first')));
 }
 function local(l) {
   S.locals.push(l);

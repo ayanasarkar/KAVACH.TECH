@@ -598,6 +598,66 @@ func run(c *client, t *tally, user, pass, dataDir string) {
 		}
 	}
 
+	// ---- SARIF export ---------------------------------------------------------------------------------------------
+	{
+		sarifPath := "/api/assessments/" + id + "/report.sarif"
+		var sf struct {
+			Version string `json:"version"`
+			Runs    []struct {
+				Results []struct {
+					RuleID     string `json:"ruleId"`
+					Properties struct {
+						FindingID string   `json:"finding_id"`
+						Evidence  []string `json:"evidence"`
+					} `json:"properties"`
+				} `json:"results"`
+			} `json:"runs"`
+		}
+		scode, _, serr := c.do("GET", sarifPath, nil, &sf)
+		t.check("the SARIF export downloads and is valid JSON", scode == 200 && serr == nil, fmt.Sprintf("status %d, err %v", scode, serr))
+		t.check("the SARIF export is version 2.1.0 with one run", sf.Version == "2.1.0" && len(sf.Runs) == 1, fmt.Sprintf("version %q, %d runs", sf.Version, len(sf.Runs)))
+		if len(sf.Runs) == 1 {
+			cur := get().Assessment
+			want := map[string]bool{}
+			for _, f := range cur.Findings {
+				want[f.ID] = true
+			}
+			got, dupes := map[string]bool{}, 0
+			for _, r := range sf.Runs[0].Results {
+				if got[r.Properties.FindingID] {
+					dupes++
+				}
+				got[r.Properties.FindingID] = true
+			}
+			same := len(got) == len(want) && dupes == 0
+			for id := range want {
+				if !got[id] {
+					same = false
+				}
+			}
+			t.check("every finding appears exactly once as a SARIF result", same, fmt.Sprintf("%d findings, %d distinct results, %d duplicates", len(want), len(got), dupes))
+			known := map[string]bool{}
+			for _, e := range cur.Evidence {
+				known[e.ID] = true
+			}
+			missing := ""
+			for _, r := range sf.Runs[0].Results {
+				for _, e := range r.Properties.Evidence {
+					if !known[e] && missing == "" {
+						missing = e
+					}
+				}
+			}
+			t.check("every evidence ID cited in the SARIF export exists", missing == "", "unknown evidence "+missing)
+		}
+		if resp, err := http.Get(c.base + sarifPath); err == nil {
+			resp.Body.Close()
+			t.check("the SARIF export requires sign-in", resp.StatusCode == 401 || resp.StatusCode == 403, fmt.Sprint("status ", resp.StatusCode))
+		} else {
+			t.check("the SARIF export requires sign-in", false, err.Error())
+		}
+	}
+
 	// ---- audit trail ----------------------------------------------------------------------------------------------
 	fin := get()
 	t.check("the audit chain verifies", fin.AuditStatus == "verified" && fin.AuditCount > 30, fmt.Sprintf("status %q, %d entries", fin.AuditStatus, fin.AuditCount))

@@ -501,6 +501,18 @@ func (s *server) item(w http.ResponseWriter, r *http.Request) {
 	case act == "audit" && r.Method == "GET":
 		es, st := a.AuditEntries()
 		jsonOut(w, 200, map[string]any{"status": st, "entries": es})
+	case act == "report.sarif" && r.Method == "GET":
+		a.Lock()
+		b, err := report.SARIF(a.ID, a.Findings)
+		a.Unlock()
+		if err != nil {
+			fail(w, 500, "could not build the SARIF export")
+			return
+		}
+		w.Header().Set("Content-Type", "application/sarif+json")
+		w.Header().Set("Content-Disposition", `attachment; filename="kavach-`+a.ID+`.sarif"`)
+		w.Header().Set("X-Content-Type-Options", "nosniff")
+		w.Write(b)
 	case act == "report.pdf" && r.Method == "GET":
 		b := report.Build(a)
 		w.Header().Set("Content-Type", "application/pdf")
