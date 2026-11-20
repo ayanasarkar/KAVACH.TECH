@@ -553,7 +553,7 @@ $('reverify').addEventListener('click', reverify);
 function showProof(on) { $('proof').hidden = !on; document.body.classList.toggle('proof-on', on); if (!on) { S.proofId = ''; S.proofSig = ''; } }
 $('p-x').addEventListener('click', () => showProof(false));
 async function openProof(id, hi) { if (!S.id) return; S.proofId = id; S.proofHi = hi || ''; S.proofSig = ''; showProof(true); await loadProof(true); }
-function findingSig(a) { const f = (a.findings || []).find((x) => x.id === S.proofId); return f ? JSON.stringify([f.confidence, f.status, f.validation, (f.evidence || []).length, (f.notes || []).length, (a.approvals || []).map((p) => p.status).join()]) : ''; }
+function findingSig(a) { const f = (a.findings || []).find((x) => x.id === S.proofId); return f ? JSON.stringify([f.confidence, f.status, f.validation, (f.evidence || []).length, (f.notes || []).length, (a.approvals || []).map((p) => p.status).join(), (a.retests || []).map((r) => r.id + r.status).join()]) : ''; }
 function refreshProof(a) { const sg = findingSig(a); if (sg && sg !== S.proofSig) loadProof(false); }
 async function loadProof(scroll) {
   const body = $('p-body'); if (scroll) body.replaceChildren(el('div', { class: 'src' }, 'Loading proof…'));
@@ -564,6 +564,52 @@ async function loadProof(scroll) {
     else if (scroll) body.scrollTop = 0;
   } catch (e) { body.replaceChildren(el('div', { class: 'errline' }, e.message)); }
 }
+// ------------------------------------------------------------------ retest and delta
+let retestWatching = false;
+async function watchRetest() {
+  if (retestWatching) return;
+  retestWatching = true;
+  try {
+    for (let i = 0; i < 80; i++) {
+      await poll();
+      const rs = (S.snap && S.snap.assessment && S.snap.assessment.retests) || [];
+      if (i > 0 && !rs.some((r) => r.status === 'running')) break;
+      await new Promise((ok) => setTimeout(ok, 1500));
+    }
+  } finally { retestWatching = false; }
+  if (S.proofId) loadProof(false);
+}
+function retestSection(p, a) {
+  const all = a.retests || [], mine = all.filter((r) => r.finding_id === p.finding), running = all.some((r) => r.status === 'running');
+  const ph = a.phase, early = !!ph && ph !== 'review' && ph !== 'done';
+  const tone = { NEW: 'warn', PERSISTING: 'bad', REMEDIATED: 'ok' };
+  const chip = (c) => el('span', { class: 'badge ' + (tone[c] || '') }, c);
+  const err = el('div', { class: 'errline' });
+  const btn = el('button', { class: 'btn sm', type: 'button', on: { click: async () => {
+    err.textContent = ''; btn.disabled = true; btn.style.opacity = '.5'; btn.textContent = 'Retest running...';
+    try { await api(`/api/assessments/${S.id}/retest`, { json: { finding_id: p.finding } }); }
+    catch (e) { err.textContent = e.message; btn.disabled = false; btn.style.opacity = ''; btn.textContent = 'Retest ' + p.finding; return; }
+    watchRetest().catch(() => {});
+  } } }, running ? 'Retest running...' : 'Retest ' + p.finding);
+  if (running || early) { btn.disabled = true; btn.style.opacity = '.5'; }
+  const kids = [el('h3', {}, 'Retest and delta'),
+    el('div', { class: 'src' }, early ? 'Available once the assessment has finished.' : 'Re-runs the tool step behind this finding as a new step with its own raw file and hash, then compares the two runs. The original run is kept.'),
+    el('div', { class: 'row', style: 'margin-top:10px' }, btn), err];
+  mine.slice(-3).reverse().forEach((r) => {
+    const d = r.delta || [], n = (c) => d.filter((x) => x.change === c).length, own = d.find((x) => x.finding_id === p.finding);
+    kids.push(el('div', { class: 'row', style: 'margin-top:14px;gap:8px' }, el('b', {}, r.id), el('span', { class: 'badge' }, r.status), el('span', { class: 'src' }, `${r.new_step} compared with ${r.old_step}, requested by ${r.analyst}`)));
+    if (r.status === 'running') kids.push(el('div', { class: 'src' }, 'Running. This panel updates when it finishes.'));
+    if (r.status === 'failed') kids.push(el('div', { class: 'src warn' }, 'This retest did not complete. The reason is in the activity log.'));
+    if (r.status === 'done') {
+      kids.push(el('div', { class: 'row', style: 'margin-top:8px;gap:8px' }, el('b', {}, 'This finding:'), own ? chip(own.change) : el('span', { class: 'src' }, 'not part of this comparison')));
+      kids.push(el('div', { class: 'src', style: 'margin-top:6px' }, `${n('NEW')} new, ${n('PERSISTING')} persisting, ${n('REMEDIATED')} remediated, ${n('UNVERIFIED')} unverified`));
+      d.forEach((x) => kids.push(el('div', { class: 'row', style: 'margin-top:6px;gap:8px' }, chip(x.change), el('span', {}, (x.finding_id ? x.finding_id + '  ' : '') + x.title), el('span', { class: 'src' }, x.asset))));
+      if (n('UNVERIFIED')) kids.push(el('div', { class: 'src warn', style: 'margin-top:8px' }, 'UNVERIFIED means the retest could not judge the issue (it did not reach the application page, or saw nothing from the host), so it is not reported as fixed.'));
+    }
+  });
+  return el('div', { class: 'sec' }, ...kids);
+}
+
 function proofView(p) {
   const a = S.snap.assessment, s = p.strength, low = s.percent < 60, out = [];
   const rawLink = (ref) => { const m = /raw\/([A-Za-z0-9._-]+)/.exec(ref || ''); return m ? el('a', { href: `/api/assessments/${S.id}/raw/${m[1]}`, target: '_blank', rel: 'noopener' }, 'Open raw file') : null; };
@@ -584,6 +630,7 @@ function proofView(p) {
     out.push(el('div', { class: 'sec' }, el('h3', {}, 'Request a validation'), el('div', { class: 'vform' }, el('p', {}, 'This only creates a pending approval. Nothing runs until you approve it with a reason and the target typed back. The only method is a module check.'), mod,
       el('button', { class: 'btn sm', type: 'button', on: { click: async () => { try { await api(`/api/assessments/${S.id}/validate`, { json: { finding_id: p.finding, module: mod.value.trim() } }); await poll(); if (innerWidth <= 1100) showProof(false); } catch (e) { err.textContent = e.message; } } } }, 'Request validation'), err)));
   } else out.push(el('div', { class: 'sec' }, el('h3', {}, 'Validation'), el('div', { class: 'src' }, 'This scope does not permit validation requests.')));
+  out.push(retestSection(p, a));
   out.push(el('div', { class: 'sec' }, el('h3', {}, `Risk ${p.risk.score.toFixed(1)} of 100`, el('small', {}, cap(p.risk.priority))), el('div', { class: 'fac' }, (p.risk.factors || []).flatMap((f) => [el('span', {}, `${f.name} (${f.source})`), el('b', {}, f.value.toFixed(2))])), el('div', { class: 'src', style: 'margin-top:10px' }, 'Computed in code from CVSS or nominal severity, exposure, tool-reported exploitability, asset criticality and confidence. A model never sets it.')));
   out.push(el('button', { class: 'btn sm', type: 'button', on: { click: () => { $('cmd').value = `Explain ${p.finding} and what I should check next`; autosize(); $('cmd').focus(); if (innerWidth <= 1100) showProof(false); } } }, 'Ask about ' + p.finding));
   return out;
