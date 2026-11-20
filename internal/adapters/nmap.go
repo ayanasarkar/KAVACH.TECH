@@ -89,7 +89,14 @@ func (*Nmap) Run(ctx context.Context, j Job) (Result, error) {
 		scripts = "banner,vulners"
 	}
 	args = append(args, "--script", scripts)
-	args = append(args, j.Host)
+	target, v6, perr := j.pinnedAddr()
+	if perr != nil {
+		return Result{}, perr
+	}
+	if v6 {
+		args = append(args, "-6")
+	}
+	args = append(args, target) // the checked address, not the name: nmap must not resolve it a second time
 	out, errOut, err := runCmd(ctx, 5*time.Minute, "nmap", args...)
 	if err != nil {
 		return Result{Raw: out + errOut}, err

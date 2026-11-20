@@ -53,8 +53,8 @@ func Build(a *agent.Assessment) []byte {
 	// 7.1
 	d.H1("1. Executive Summary")
 	d.Para("Assessment scope", 11, true, pdf.Black, 0)
-	d.Para(fmt.Sprintf("Authorised targets: %s. Exclusions: %s. Active scanning was %s; offensive validation was %s. All testing stayed inside the organiser-authorised lab scope enforced by a deny-by-default guard.",
-		strings.Join(a.Scope.Targets, ", "), orNone(a.Scope.Exclusions), yesNo(a.Scope.AllowActive, "permitted", "not permitted"), yesNo(a.Scope.AllowExploit, "permitted only with per-action human approval", "not permitted")), 10, false, pdf.Black, 0)
+	d.Para(fmt.Sprintf("Authorised targets: %s. Exclusions: %s. Active scanning was %s; offensive validation was %s. Testing stayed inside the scope the analyst registered, enforced by a deny-by-default guard. Authorisation reference entered by the analyst: %q (KAVACH cannot verify it; the analyst is responsible for holding written permission for every target).",
+		strings.Join(a.Scope.Targets, ", "), orNone(a.Scope.Exclusions), yesNo(a.Scope.AllowActive, "permitted", "not permitted"), yesNo(a.Scope.AllowExploit, "permitted only with per-action human approval", "not permitted"), a.Scope.Authorization), 10, false, pdf.Black, 0)
 	d.Space(4)
 	d.Para("Overall assessment ("+label(a.SummaryBy)+")", 11, true, pdf.Black, 0)
 	d.Para(a.Summary, 10, false, pdf.Black, 0)
@@ -238,7 +238,7 @@ func Build(a *agent.Assessment) []byte {
 		d.Para("- "+s, 9.5, false, pdf.Black, 8)
 	}
 	d.H2("Assumptions")
-	d.Para("- The targets are organiser-provided lab systems and were not modified during the test.\n- Tool outputs were taken as produced; timestamps are in UTC from the agent host clock.", 9.5, false, pdf.Black, 8)
+	d.Para("- The analyst attested that every target is authorised for this test; KAVACH cannot verify that. The checks were read-only or scanning only, and nothing on the targets was modified.\n- Tool outputs were taken as produced; timestamps are in UTC from the agent host clock.", 9.5, false, pdf.Black, 8)
 	d.H2("Scan failures, skipped and blocked steps")
 	any := false
 	for _, s := range a.Steps {

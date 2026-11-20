@@ -306,6 +306,7 @@ func (a *Assessment) ingest(st *Step, res adapters.Result) {
 			continue
 		}
 		a.flagInjection(f.Host, f.Port, f.Tool, "tool output", f.Excerpt)
+		f.Excerpt = adapters.RedactSecrets(f.Excerpt) // the raw file keeps the tool's bytes; the excerpt (PDF, model prompt) never carries a secret
 		e := model.Evidence{ID: a.newEvidenceID(), Tool: f.Tool, Asset: fmt.Sprintf("%s:%d", f.Host, f.Port), Time: time.Now().UTC(), RawRef: ref(f.RawRef), Excerpt: f.Excerpt, RunID: st.ID}
 		a.Evidence = append(a.Evidence, e)
 		f.Evidence = e.ID

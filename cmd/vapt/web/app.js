@@ -389,3 +389,15 @@ setInterval(() => { const d = new Date(); $('b-clock').textContent = d.toLocaleT
 $('b-clock').textContent = new Date().toLocaleTimeString([], { hour12: false });
 
 renderBar(); go('scope'); boot();
+
+// ---------- pick up the assessment already running in the console ----------
+// The console keeps the active id in sessionStorage ("vapt-chat-aid"); a link may also carry ?id=. Adopt it so the
+// workbench shows the same run instead of an empty scope form. An unknown id or a lost session changes nothing.
+(async function adoptAssessment() {
+  let id = null;
+  try { id = new URLSearchParams(location.search).get('id') || sessionStorage.getItem('vapt-chat-aid'); } catch { /* storage blocked */ }
+  if (!id || !/^[A-Za-z0-9._-]{1,64}$/.test(id)) return;
+  try { S.snap = await api('/api/assessments/' + encodeURIComponent(id)); } catch (e) { return; }
+  S.id = id; $('bar-mid').textContent = 'assessment ' + id; go('plan');
+  await poll(); clearInterval(S.timer); S.timer = setInterval(poll, 1200);
+})();
