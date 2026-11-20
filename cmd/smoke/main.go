@@ -77,6 +77,7 @@ type state struct {
 		Approvals   []approval
 		Limitations []string
 		Events      []struct{ Level, Text string }
+		Retests     []retestRec
 	}
 	AuditStatus string `json:"audit_status"`
 	AuditCount  int    `json:"audit_count"`
@@ -525,6 +526,77 @@ func run(c *client, t *tally, user, pass, dataDir string) {
 		t.check("the validation produced a recognised verdict", ok, "validation "+after.Validation)
 	}
 	t.check("the validation attempt is added to the finding's evidence", len(after.Evidence) > evBefore, fmt.Sprintf("%d -> %d evidence items", evBefore, len(after.Evidence)))
+
+	// ---- retest and delta ----------------------------------------------------------------------------------------
+	{
+		evBeforeRetest := len(get().Assessment.Evidence)
+		rcode, _, _ := c.do("POST", "/api/assessments/"+id+"/retest", map[string]string{"finding_id": "F-999"}, nil)
+		t.check("a retest of an unknown finding is refused", rcode == 422, fmt.Sprint("status ", rcode))
+		t.check("a refused retest creates no record", len(get().Assessment.Retests) == 0, "")
+
+		var rt retestRec
+		rcode, rbody, _ := c.do("POST", "/api/assessments/"+id+"/retest", map[string]string{"finding_id": tel.ID}, &rt)
+		t.check("a retest of the Telnet finding is accepted", rcode == 202 && rt.ID != "" && rt.Status == "running",
+			fmt.Sprintf("status %d: %s", rcode, strings.TrimSpace(string(rbody))))
+		t.check("the retest records the signed-in analyst", rt.Analyst != "", "analyst is empty")
+		if rcode == 202 {
+			var res retestRec
+			for end := time.Now().Add(60 * time.Second); time.Now().Before(end); time.Sleep(400 * time.Millisecond) {
+				for _, r := range get().Assessment.Retests {
+					if r.ID == rt.ID && r.Status != "running" {
+						res = r
+					}
+				}
+				if res.ID != "" {
+					break
+				}
+			}
+			now := get().Assessment
+			why := ""
+			for _, e := range now.Events {
+				if e.Level == "warn" && strings.Contains(e.Text, rt.ID) {
+					why = e.Text
+				}
+			}
+			t.check("the retest finishes", res.Status == "done", fmt.Sprintf("status %q, state lists %d retests. %s", res.Status, len(now.Retests), why))
+
+			var oldS, newS step
+			for _, s := range now.Steps {
+				switch s.ID {
+				case rt.OldStep:
+					oldS = s
+				case rt.NewStep:
+					newS = s
+				}
+			}
+			t.check("the retest is a new step and the original run is kept", oldS.ID != "" && newS.ID != "" && newS.ID != oldS.ID && oldS.Status == "done",
+				fmt.Sprintf("old %q (%s), new %q (%s)", oldS.ID, oldS.Status, newS.ID, newS.Status))
+			t.check("the retest re-ran the same tool on the same target", newS.ID != "" && newS.Tool == oldS.Tool && newS.Target == oldS.Target,
+				fmt.Sprintf("%s %s vs %s %s", oldS.Tool, oldS.Target, newS.Tool, newS.Target))
+			t.check("the retest step completed", newS.Status == "done", "status "+newS.Status)
+			t.check("the retest produced its own evidence", len(now.Evidence) > evBeforeRetest, fmt.Sprintf("%d -> %d evidence items", evBeforeRetest, len(now.Evidence)))
+
+			telChange, remediated, list := "", 0, []string{}
+			for _, d := range res.Delta {
+				if d.FindingID == tel.ID {
+					telChange = d.Change
+				}
+				if d.Change == "REMEDIATED" {
+					remediated++
+				}
+				list = append(list, d.Change+" "+d.Key+" "+d.Asset)
+			}
+			t.check("the delta shows the Telnet finding as PERSISTING", telChange == "PERSISTING", fmt.Sprintf("got %q; delta: %s", telChange, strings.Join(list, "; ")))
+			t.check("nothing is called REMEDIATED while the lab is unchanged", remediated == 0, strings.Join(list, "; "))
+			if dataDir != "" {
+				raw, err := os.ReadFile(filepath.Join(dataDir, id, "audit.jsonl"))
+				t.check("the audit file records the retest request and its result",
+					err == nil && bytes.Contains(raw, []byte("retest_requested")) && bytes.Contains(raw, []byte("retest_end")), fmt.Sprint(err))
+			}
+		} else {
+			fmt.Println("INFO  the retest was not accepted, so the remaining retest checks were skipped")
+		}
+	}
 
 	// ---- audit trail ----------------------------------------------------------------------------------------------
 	fin := get()
