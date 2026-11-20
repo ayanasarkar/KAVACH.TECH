@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<!DOCTYPE lolz [
+  <!ENTITY xxe SYSTEM "file:///etc/passwd">
+  <!ENTITY a "AAAAAAAAAAAAAAAAAAAA">
+  <!ENTITY b "&a;&a;&a;&a;&a;&a;&a;&a;&a;&a;">
+  <!ENTITY c "&b;&b;&b;&b;&b;&b;&b;&b;&b;&b;">
+]>
+<NessusClientData_v2><Report name="hostile"><ReportHost name="127.0.0.1">
+  <ReportItem port="1" protocol="tcp" severity="3" pluginID="1" pluginName="&xxe;">
+    <plugin_output>&c;</plugin_output>
+  </ReportItem>
+</ReportHost></Report></NessusClientData_v2>
