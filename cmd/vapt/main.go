@@ -420,6 +420,19 @@ func (s *server) item(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		jsonOut(w, 200, map[string]any{"proof": pv, "score_meaning": "evidence-strength score computed by code; not a calibrated probability"})
+	case act == "retest" && r.Method == "POST":
+		who, ok := actor(w, r)
+		if !ok {
+			return
+		}
+		var in map[string]string
+		json.NewDecoder(r.Body).Decode(&in)
+		rt, err := a.RequestRetest(in["finding_id"], who)
+		if err != nil {
+			fail(w, 422, err.Error())
+			return
+		}
+		jsonOut(w, 202, rt)
 	case act == "validate" && r.Method == "POST":
 		who, ok := actor(w, r)
 		if !ok {

@@ -464,10 +464,10 @@ func (a *Assessment) addStep(p proposal, by string) bool {
 			a.audit("scope-guard", "option_dropped", fmt.Sprintf("%s on %s: option %s", p.Tool, p.Target, d), nil)
 		}
 	}
-	if by != "analyst" && a.skipRedundant(p, by) {
+	if by != "analyst" && by != "retest" && a.skipRedundant(p, by) {
 		return false
 	}
-	if pc := sig(p.Tool, p.Target, p.Options, p.Import); a.hasSig(pc) {
+	if pc := sig(p.Tool, p.Target, p.Options, p.Import); by != "retest" && a.hasSig(pc) {
 		a.event("info", fmt.Sprintf("Skipped duplicate step %s on %s (already planned or run).", p.Tool, p.Target))
 		return false
 	}

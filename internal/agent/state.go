@@ -100,6 +100,7 @@ type Assessment struct {
 	Inferences  map[string][]model.Inference `json:"inferences,omitempty"`  // finding key -> AI/rules inferences
 	FindingIDs  map[string]string            `json:"finding_ids,omitempty"` // finding key -> stable ID
 	Completed   time.Time                    `json:"completed,omitempty"`
+	Retests     []Retest                     `json:"retests,omitempty"`
 
 	mu      sync.Mutex
 	dir     string
