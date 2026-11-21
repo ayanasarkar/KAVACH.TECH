@@ -37,7 +37,13 @@ func Run(in Input) []model.Finding {
 	svcByHostPort := map[string]model.Service{}
 	for _, s := range in.Services {
 		k := fmt.Sprintf("%s:%d", s.Host, s.Port)
-		if prev, ok := svcByHostPort[k]; !ok || prev.State != "open" {
+		prev, ok := svcByHostPort[k]
+		switch {
+		case !ok || prev.State != "open":
+			svcByHostPort[k] = s
+		case s.State == "open" && s.Tool == "webcheck" && s.Name == "https" && !strings.Contains(prev.Name, "https"):
+			// webcheck negotiated TLS on this port itself; that is direct evidence and beats a plainer "http"
+			// label from another tool, so every section of the report names the same scheme for the asset.
 			svcByHostPort[k] = s
 		}
 	}

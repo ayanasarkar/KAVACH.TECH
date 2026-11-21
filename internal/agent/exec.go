@@ -240,7 +240,11 @@ func (a *Assessment) runStep(ctx context.Context, i int) {
 	if err != nil {
 		st.Status, st.Error = "failed", err.Error()
 		a.Limitations = addUniq(a.Limitations, fmt.Sprintf("%s (%s on %s) failed: %s", st.ID, st.Tool, st.Target, err.Error()))
-		a.audit("tool:"+st.Tool, "run_end", fmt.Sprintf("%s FAILED: %v", st.ID, err), map[string]string{"step": st.ID, "status": "failed"})
+		failDetail := map[string]string{"step": st.ID, "status": "failed"}
+		if st.RawSHA256 != "" {
+			failDetail["sha256"] = st.RawSHA256 // a failed run's partial output is evidence too; seal it like any other
+		}
+		a.audit("tool:"+st.Tool, "run_end", fmt.Sprintf("%s FAILED: %v", st.ID, err), failDetail)
 		a.event("error", fmt.Sprintf("%s %s failed: %v — continuing with the remaining steps.", st.ID, st.Tool, err))
 		return
 	}

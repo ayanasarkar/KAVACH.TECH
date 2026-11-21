@@ -2,6 +2,7 @@ package report
 
 import (
 	"fmt"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -109,7 +110,7 @@ func Build(a *agent.Assessment) []byte {
 	if len(rows) == 0 {
 		d.Para("No open services were recorded.", 10, false, pdf.Grey, 0)
 	} else {
-		d.Table([]string{"Asset", "Service", "Product / version", "Observed by", "Evidence"}, rows, []float64{120, 70, 160, 80, 65})
+		d.Table([]string{"Asset", "Service", "Product / version", "Observed by", "Evidence"}, rows, []float64{145, 60, 150, 75, 65})
 	}
 	d.H2("Tool execution summary")
 	rows = nil
@@ -122,13 +123,13 @@ func Build(a *agent.Assessment) []byte {
 		if s.Error != "" {
 			res += ": " + clip(s.Error, 70)
 		} else if s.Summary != "" {
-			res += ": " + clip(s.Summary, 60)
+			res += ": " + clip(outcomeText(s.Summary, s.Target), 120)
 		} else if s.Status == "blocked" {
 			res += ": " + clip(s.Guard.Reason, 70)
 		}
-		rows = append(rows, []string{s.ID, s.Tool + " (" + modeShort(s.Mode) + ")", clip(s.Target, 28), res, dur, "by " + shortBy(s.ProposedBy)})
+		rows = append(rows, []string{s.ID, s.Tool + " (" + modeShort(s.Mode) + ")", s.Target, res, dur, "by " + shortBy(s.ProposedBy)})
 	}
-	d.Table([]string{"Step", "Tool (mode)", "Target", "Outcome", "Time", "Planned"}, rows, []float64{36, 85, 100, 160, 55, 59})
+	d.Table([]string{"Step", "Tool (mode)", "Target", "Outcome", "Time", "Planned"}, rows, []float64{34, 80, 142, 135, 50, 54})
 	d.H2("Why each step was chosen")
 	for _, s := range a.Steps {
 		d.Para(fmt.Sprintf("%s %s: %s", s.ID, s.Tool, s.Rationale), 9, false, pdf.Black, 8)
@@ -154,9 +155,9 @@ func Build(a *agent.Assessment) []byte {
 		if f.CVSS != nil {
 			cv = fmt.Sprintf("%.1f", *f.CVSS)
 		}
-		rows = append(rows, []string{f.ID, clip(f.Title, 54), clip(assetList(f), 30), strings.ToUpper(f.Severity), cv, fmt.Sprintf("%.0f %s", f.Risk.Score, f.Risk.Priority), f.Status})
+		rows = append(rows, []string{f.ID, f.Title, assetCell(f), strings.ToUpper(f.Severity), cv, fmt.Sprintf("%.0f %s", f.Risk.Score, f.Risk.Priority), f.Status})
 	}
-	d.Table([]string{"ID", "Finding", "Assets", "Severity", "CVSS", "Risk", "Status"}, rows, []float64{36, 150, 100, 52, 36, 50, 70})
+	d.Table([]string{"ID", "Finding", "Assets", "Severity", "CVSS", "Risk", "Status"}, rows, []float64{36, 142, 118, 52, 34, 48, 65})
 
 	// 7.4
 	d.H1("4. Detailed Vulnerability Findings")
@@ -290,11 +291,27 @@ func Build(a *agent.Assessment) []byte {
 	d.H1("Appendix B. Evidence index")
 	rows = nil
 	for _, e := range a.Evidence {
-		rows = append(rows, []string{e.ID, e.Tool, clip(e.Asset, 22), ts(e.Time), clip(e.RawRef, 60)})
+		rows = append(rows, []string{e.ID, e.Tool, e.Asset, ts(e.Time), clip(e.RawRef, 90)})
 	}
-	d.Table([]string{"ID", "Tool", "Asset", "Time", "Raw reference"}, rows, []float64{44, 52, 90, 120, 189})
+	d.Table([]string{"ID", "Tool", "Asset", "Time", "Raw reference"}, rows, []float64{44, 52, 130, 100, 169})
 	d.H1("Appendix C. Decision and audit trace")
 	d.Para(fmt.Sprintf("Hash-chained audit log: %d entries, integrity %s. Head hash %s.", len(entries), auditStatus, headHash(entries)), 9, false, pdf.Black, 0)
+	d.Space(3)
+	var digests []string
+	for _, s := range a.Steps {
+		if s.RawSHA256 != "" && s.RawFile != "" {
+			digests = append(digests, fmt.Sprintf("%s: %s", filepath.ToSlash(s.RawFile), s.RawSHA256))
+		}
+	}
+	if len(digests) > 0 {
+		d.Para("Raw evidence digests (SHA-256; each is also sealed in its run_end audit entry):", 9, true, pdf.Grey, 0)
+		d.Space(4) // Mono's panel starts 2pt above the line above it, so leave room rather than cover that text
+		for _, x := range digests {
+			d.Mono(x, 7, 8)
+		}
+		d.Space(2)
+	}
+	d.Para("Verify offline, without the console: vapt -verify-audit <assessment directory>   (add -sarif <file> to check an export against the same chain)", 9, false, pdf.Black, 0)
 	d.Space(3)
 	for _, e := range entries {
 		d.Para(fmt.Sprintf("#%d %s %s %s: %s", e.Seq, e.Time.UTC().Format("15:04:05"), e.Actor, e.Type, clip(e.Summary, 170)), 7.5, false, pdf.Black, 0)

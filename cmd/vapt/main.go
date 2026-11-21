@@ -55,7 +55,12 @@ type server struct {
 func main() {
 	addr := flag.String("addr", "127.0.0.1:8787", "listen address (keep it on loopback)")
 	data := flag.String("data", "data", "directory for assessments (raw output, audit logs, state)")
+	verifyDir := flag.String("verify-audit", "", "verify an assessment directory offline (audit hash chain + raw evidence digests), then exit")
+	verifySarif := flag.String("sarif", "", "with -verify-audit: also check this SARIF export is bound to the same audit chain")
 	flag.Parse()
+	if *verifyDir != "" {
+		os.Exit(runVerifyAudit(*verifyDir, *verifySarif, os.Stdout))
+	}
 	if err := os.MkdirAll(*data, 0o700); err != nil {
 		log.Fatal(err)
 	}
@@ -502,9 +507,7 @@ func (s *server) item(w http.ResponseWriter, r *http.Request) {
 		es, st := a.AuditEntries()
 		jsonOut(w, 200, map[string]any{"status": st, "entries": es})
 	case act == "report.sarif" && r.Method == "GET":
-		a.Lock()
-		b, err := report.SARIF(a.ID, a.Findings)
-		a.Unlock()
+		b, err := report.BuildSARIF(a)
 		if err != nil {
 			fail(w, 500, "could not build the SARIF export")
 			return

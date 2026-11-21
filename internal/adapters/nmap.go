@@ -42,6 +42,7 @@ type nmapRun struct {
 				P                             string `xml:"product,attr"`
 				V                             string `xml:"version,attr"`
 				E                             string `xml:"extrainfo,attr"`
+				Tunnel                        string `xml:"tunnel,attr"`
 			} `xml:"service"`
 			Scripts []struct {
 				ID  string `xml:"id,attr"`
@@ -49,6 +50,16 @@ type nmapRun struct {
 			} `xml:"script"`
 		} `xml:"ports>port"`
 	} `xml:"host"`
+}
+
+// nmapServiceName normalises nmap's service name. nmap reports a TLS web port as name="http" tunnel="ssl"
+// (its own notation is "ssl/http"); the agent labels that https, the same scheme webcheck negotiates, so a
+// finding's asset line never contradicts the Assets Tested table.
+func nmapServiceName(name, tunnel string) string {
+	if tunnel == "ssl" && name == "http" {
+		return "https"
+	}
+	return name
 }
 
 func (*Nmap) Run(ctx context.Context, j Job) (Result, error) {
@@ -133,7 +144,8 @@ func (*Nmap) Run(ctx context.Context, j Job) (Result, error) {
 					banner = strings.TrimSpace(banner + " " + raw)
 				}
 			}
-			s := model.Service{Host: j.Host, Port: p.ID, Proto: p.Proto, State: p.State.S, Name: p.Service.N, Product: p.Service.P, Version: p.Service.V, Tool: "nmap",
+			svcName := nmapServiceName(p.Service.N, p.Service.Tunnel)
+			s := model.Service{Host: j.Host, Port: p.ID, Proto: p.Proto, State: p.State.S, Name: svcName, Product: p.Service.P, Version: p.Service.V, Tool: "nmap",
 				Banner: banner}
 			res.Services = append(res.Services, s)
 			if s.State == "open" {
