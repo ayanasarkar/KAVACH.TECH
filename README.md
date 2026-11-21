@@ -113,7 +113,8 @@ vapt-agent/
 | Built-in checks | Read-only and shallow: HTTP configuration, banners and exposure. They do not test authentication, business logic or input handling. |
 | Imports | Commercial-tool findings reflect the supplied export and are not re-run. Licences remain the analyst's own. |
 | Confidence values | Calibrated heuristics from detection basis and cross-tool corroboration, not statistical probabilities. |
-| Not implemented | MITRE ATT&CK and NIST CSF 2.0 mapping, SARIF export (the outputs are the PDF report and the JSON assessment state), retest and change comparison. |
+| Framework mapping | MITRE ATT&CK and NIST CSF 2.0 are mapped at tactic and category level only (see report Section 2), not at technique level. |
+| SARIF export and retest | SARIF 2.1.0 export at `GET /api/assessments/{id}/report.sarif`. Tests check its structure, but it has not been run through the official schema validator, and network findings have no repo file path, so GitHub Code Scanning display is untested. Retest re-runs the original tool step for one finding and compares the two runs (NEW, PERSISTING, REMEDIATED, UNVERIFIED). Against the local lab, a fix is simulated with a `lab-fixed.flag` file. |
 | Assumption | Every target is an organiser-authorised lab or sandbox system. The agent cannot verify authorisation; it enforces only what the analyst registered. |
 
 ---
