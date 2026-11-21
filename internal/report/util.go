@@ -87,13 +87,49 @@ func shortBy(b string) string {
 	}
 	return b
 }
-func assetList(f model.Finding) string {
-	var a []string
+
+// assetSummary lists a finding's assets compactly, grouped by host: "www.example.com (:80, :443, :8000)".
+// Every asset sharing a host prints that host once, so the ports are never what a table cell cuts off.
+func assetSummary(f model.Finding) string {
+	var order []string
+	ports := map[string][]string{}
 	for _, x := range f.Assets {
-		a = append(a, fmt.Sprintf("%s:%d", x.Host, x.Port))
+		if _, seen := ports[x.Host]; !seen {
+			order = append(order, x.Host)
+			ports[x.Host] = nil
+		}
+		if x.Port > 0 {
+			ports[x.Host] = append(ports[x.Host], fmt.Sprintf(":%d", x.Port))
+		}
 	}
-	return strings.Join(a, ", ")
+	var parts []string
+	for _, h := range order {
+		if len(ports[h]) == 0 {
+			parts = append(parts, h)
+			continue
+		}
+		parts = append(parts, fmt.Sprintf("%s (%s)", h, strings.Join(ports[h], ", ")))
+	}
+	return strings.Join(parts, "; ")
 }
+
+// assetCell is assetSummary laid out for a narrow table cell: each host on its own line with its port list
+// beneath it, so a wrapped cell never splits the ports of one host across lines.
+func assetCell(f model.Finding) string {
+	return strings.ReplaceAll(strings.ReplaceAll(assetSummary(f), "; ", "\n"), " (", "\n(")
+}
+
+// outcomeText shortens a step summary for the Outcome column. Webcheck summaries start with the URL they hit
+// ("http://h:8000 -> HTTP 200, 4 issues"), which the Target column beside it already shows, so that repeat is
+// dropped. A summary whose URL differs from the target (a protocol fallback corrected the scheme) is kept whole,
+// because the corrected URL is exactly what a reader needs to see.
+func outcomeText(summary, target string) string {
+	if i := strings.Index(summary, " -> "); i > 0 && strings.TrimSpace(summary[:i]) == strings.TrimSpace(target) {
+		return summary[i+len(" -> "):]
+	}
+	return summary
+}
+
 func firstS(s []string, n int) []string {
 	if len(s) > n {
 		return s[:n]

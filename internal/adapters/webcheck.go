@@ -8,6 +8,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/url"
 	"regexp"
@@ -53,21 +54,76 @@ func (w *WebCheck) get(ctx context.Context, cl *http.Client, lim *scope.Limiter,
 	return httpResp{status: resp.StatusCode, hdr: resp.Header, body: string(b), url: u}, nil
 }
 
-func (w *WebCheck) Run(ctx context.Context, j Job) (Result, error) {
-	base := j.Target
-	if !strings.Contains(base, "://") {
-		base = "http://" + base
+// tlsPorts are the ports that conventionally speak TLS. A scheme-less "host:port" target on one of them is
+// fetched over https; sending plain HTTP to a TLS listener only yields a 400 and hides every real finding.
+var tlsPorts = map[string]bool{"443": true, "4443": true, "8443": true, "9443": true, "10443": true}
+
+// inferScheme picks the scheme for a target the caller gave without one. It returns the scheme-prefixed base URL
+// and whether the scheme was inferred (an explicit http:// or https:// from the caller is always respected).
+func inferScheme(target string) (base string, inferred bool) {
+	if strings.Contains(target, "://") {
+		return target, false
 	}
-	bu, err := url.Parse(base)
-	if err != nil {
+	scheme := "http"
+	if _, port, err := net.SplitHostPort(target); err == nil && tlsPorts[port] {
+		scheme = "https"
+	}
+	return scheme + "://" + target, true
+}
+
+// swapScheme returns base with its scheme flipped between http and https.
+func swapScheme(base string) string {
+	if strings.HasPrefix(base, "https://") {
+		return "http://" + strings.TrimPrefix(base, "https://")
+	}
+	return "https://" + strings.TrimPrefix(base, "http://")
+}
+
+// plainHTTPToTLS reports whether a response is a server saying "you spoke plain HTTP to my TLS port".
+func plainHTTPToTLS(r httpResp) bool {
+	if r.status != http.StatusBadRequest {
+		return false
+	}
+	b := strings.ToLower(r.body)
+	return strings.Contains(b, "plain http request was sent to https port") || // nginx
+		strings.Contains(b, "client sent an http request to an https server") // Go net/http
+}
+
+func (w *WebCheck) Run(ctx context.Context, j Job) (Result, error) {
+	base, inferred := inferScheme(j.Target)
+	if _, err := url.Parse(base); err != nil {
 		return Result{}, err
 	}
 	cl := &http.Client{Timeout: 6 * time.Second,
 		Transport:     &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, DialContext: j.dialer(6 * time.Second).DialContext}, // lab self-signed certs; we only read
 		CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
 	root, err := w.get(ctx, cl, j.Limiter, base)
+	// Protocol fallback, only when the caller did not name a scheme: if the guess was wrong the server tells us
+	// (a 400 "plain HTTP request sent to HTTPS port", or a TLS/HTTP mismatch error), so retry once with the other
+	// scheme. The switch is written into the raw evidence below so it is auditable, never silent.
+	var upgradeNote string
+	if inferred {
+		switch {
+		case err == nil && plainHTTPToTLS(root):
+			alt := swapScheme(base)
+			if r2, e2 := w.get(ctx, cl, j.Limiter, alt); e2 == nil && !plainHTTPToTLS(r2) {
+				upgradeNote = fmt.Sprintf("NOTE protocol fallback: %s answered HTTP 400 (plain HTTP sent to a TLS port); retried as %s -> %d", base, alt, r2.status)
+				base, root = alt, r2
+			}
+		case err != nil && strings.Contains(err.Error(), "server gave HTTP response to HTTPS client"):
+			alt := swapScheme(base)
+			if r2, e2 := w.get(ctx, cl, j.Limiter, alt); e2 == nil {
+				upgradeNote = fmt.Sprintf("NOTE protocol fallback: %s is not TLS (%v); retried as %s -> %d", base, err, alt, r2.status)
+				base, root, err = alt, r2, nil
+			}
+		}
+	}
 	if err != nil {
 		return Result{}, fmt.Errorf("GET %s: %w", base, err)
+	}
+	bu, err := url.Parse(base)
+	if err != nil {
+		return Result{}, err
 	}
 	host := bu.Hostname()
 	port := 80
@@ -81,6 +137,9 @@ func (w *WebCheck) Run(ctx context.Context, j Job) (Result, error) {
 	line := 0
 	emit := func(s string) int { fmt.Fprintln(&raw, s); line++; return line }
 	emit(fmt.Sprintf("# webcheck %s %s", base, time.Now().UTC().Format(time.RFC3339)))
+	if upgradeNote != "" {
+		emit(upgradeNote)
+	}
 	emit(fmt.Sprintf("GET %s -> %d", base, root.status))
 	hdrLine := map[string]int{}
 	for k, v := range root.hdr {
@@ -253,6 +312,9 @@ func (w *WebCheck) Run(ctx context.Context, j Job) (Result, error) {
 	}
 	res.Raw = raw.String()
 	res.Summary = fmt.Sprintf("%s -> HTTP %d, %d issues", base, root.status, len(res.Findings))
+	if upgradeNote != "" {
+		res.Summary += " (scheme corrected by protocol fallback)"
+	}
 	return res, nil
 }
 

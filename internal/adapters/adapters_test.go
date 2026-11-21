@@ -173,3 +173,22 @@ func TestMetasploitRejectsBadModulesAndPayloads(t *testing.T) {
 		}
 	}
 }
+
+// Regression: a Telnet or FTP finding must not take a web key (found in the judge stress test, where an OpenVAS
+// "FTP server version match" at QoD 30 was merged into the HTTP Server-header finding and came out as a Critical).
+func TestNormalizeKeyKeepsNonHTTPProtocolsOutOfWebKeys(t *testing.T) {
+	cases := map[string]string{
+		"Telnet Unencrypted Cleartext Login":  "net:cleartext:telnet",
+		"FTP server version match":            "",
+		"FTP Unencrypted Cleartext Login":     "net:cleartext:ftp",
+		"SSH server version disclosure":       "",
+		"Server banner anomaly":               "web:version-disclosure:server",
+		"Web server may reveal its version":   "web:version-disclosure:server",
+		"Login form sent over plaintext HTTP": "web:cleartext-credentials",
+	}
+	for in, want := range cases {
+		if got := NormalizeKey(in, ""); got != want {
+			t.Errorf("NormalizeKey(%q) = %q, want %q", in, got, want)
+		}
+	}
+}

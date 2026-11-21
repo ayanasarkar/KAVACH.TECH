@@ -41,6 +41,9 @@ func (*Nikto) Run(ctx context.Context, j Job) (Result, error) {
 	if err := validHost(j.Host); err != nil {
 		return Result{}, err
 	}
+	if _, _, err := j.pinnedAddr(); err != nil { // refuse a name that already resolves out of scope; nikto keeps the name for vhosts
+		return Result{}, err
+	}
 	port := j.Port
 	if port == 0 {
 		port = 80

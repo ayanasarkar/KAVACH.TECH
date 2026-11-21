@@ -28,7 +28,41 @@ Runtime   : Go 1.22+ (100% Standard Library — Zero External Go Dependencies)
 
 
 
+finale-prep
+## 📊 Integration Matrix (Truthful Capabilities)
+
+**Verified Live Execution Details:** Kavach dynamically executes **Nmap** (port, service, and version discovery) and **Go Built-in web checks** against authorized domains (e.g., `www.hackthecore.in`). The agent autonomously discovers vulnerabilities like exposed Git repositories, missing security headers, and open ports, while parsing live XML and HTTP responses in real-time.
+
+| Tool | Status | Execution Method | Notes |
+| :--- | :--- | :--- | :--- |
+| **Go Built-in Recons** | 🟢 Live | Native TCP / HTTP GET | Default fallback; header analysis, banner grabs, `.env`/`.git` leaks. |
+| **Nmap** | 🟢 Live | CLI (`-sV`, XML parsed) | Fully parsed live when `nmap` is present on PATH. |
+| **Nikto** | 🟢 Live | CLI (XML parsed) | Parsed live when `nikto` is present on PATH. |
+| **OWASP ZAP** | 🟢 Live | REST API Daemon | Requires ZAP daemon (`:8090`). Active scan runs only if scope permits. |
+| **Metasploit** | 🟡 Gated | `msfconsole` module check | **Lab-only & Human Approval Gated**. Never autonomous. |
+| **Nessus** | 🔵 Import | `.nessus` v2 XML | File import parser (Essentials capped at 16 hosts). |
+| **Burp Suite** | 🔵 Import | XML issue export | File import parser for XML findings exports. |
+| **OpenVAS / Greenbone** | 🔵 Import | Report XML | Report import parser. |
+
+### Known limitations, assumptions and unsupported scenarios
+
+| Area | Status |
+| :--- | :--- |
+| Nessus live API | Not implemented. Import of a `.nessus` v2 export only. |
+| OpenVAS / Greenbone live session (GMP) | Planned, not implemented. Import of an XML report only. |
+| Burp Suite REST / GraphQL APIs | Not implemented. Import of an XML issue export only. |
+| Nmap, Nikto, OWASP ZAP | Live only when the tool is installed (Nmap, Nikto) or the ZAP daemon is reachable. Otherwise the step is skipped and the gap is listed under the report's limitations. |
+| Metasploit | Module `check` only, one approval per run. Exploitation (`exploit`/`run`), payload selection and autonomous use are unsupported by design. Without `msfconsole` the recorded verdict is `undetermined`. |
+| Scope | Lab-only by default: public addresses and CIDRs are refused unless the organiser authorises them (`allow_non_lab`) or the hostname is under an explicitly authorised domain tree. IPv4 CIDRs larger than `/16` are refused. |
+| Built-in checks | Read-only and shallow: HTTP configuration, banners and exposure. They do not test authentication, business logic or input handling. |
+| Imports | Commercial-tool findings reflect the supplied export and are not re-run. Licences remain the analyst's own. |
+| Confidence values | Calibrated heuristics from detection basis and cross-tool corroboration, not statistical probabilities. |
+| Framework mapping | MITRE ATT&CK and NIST CSF 2.0 are mapped at tactic and category level only (see report Section 2), not at technique level. |
+| SARIF export and retest | SARIF 2.1.0 export at `GET /api/assessments/{id}/report.sarif`. Tests check its structure, but it has not been run through the official schema validator, and network findings have no repo file path, so GitHub Code Scanning display is untested. Retest re-runs the original tool step for one finding and compares the two runs (NEW, PERSISTING, REMEDIATED, UNVERIFIED). Against the local lab, a fix is simulated with a `lab-fixed.flag` file. |
+| Assumption | Every target is an organiser-authorised lab or sandbox system. The agent cannot verify authorisation; it enforces only what the analyst registered. |
+=======
 --------------------------------------------------------------------------------
+ main
 
 1. EXECUTIVE SUMMARY
 

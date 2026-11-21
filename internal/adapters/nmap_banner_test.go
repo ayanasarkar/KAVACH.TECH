@@ -2,6 +2,7 @@ package adapters
 
 import (
 	"context"
+	"encoding/xml"
 	"net"
 	"strings"
 	"testing"
@@ -75,5 +76,26 @@ func TestNmapAdapterKeepsRawBanner(t *testing.T) {
 	}
 	if got := res.Services[0].Banner; !strings.Contains(got, banner) {
 		t.Errorf("raw banner lost: %q", got)
+	}
+}
+
+// nmap reports a TLS web port as name="http" tunnel="ssl"; it must be labelled https so every report
+// section names the same scheme as webcheck does.
+func TestNmapServiceNameTunnelSSL(t *testing.T) {
+	for _, tc := range []struct{ name, tunnel, want string }{
+		{"http", "ssl", "https"},
+		{"http", "", "http"},
+		{"https", "ssl", "https"},
+		{"smtp", "ssl", "smtp"}, // only web services are renamed
+		{"ssh", "", "ssh"},
+	} {
+		if got := nmapServiceName(tc.name, tc.tunnel); got != tc.want {
+			t.Errorf("nmapServiceName(%q,%q)=%q want %q", tc.name, tc.tunnel, got, tc.want)
+		}
+	}
+	var run nmapRun
+	x := `<nmaprun><host><ports><port protocol="tcp" portid="443"><state state="open"/><service name="http" product="nginx" tunnel="ssl"/></port></ports></host></nmaprun>`
+	if err := xml.Unmarshal([]byte(x), &run); err != nil || run.Hosts[0].Ports[0].Service.Tunnel != "ssl" {
+		t.Fatalf("tunnel attribute not parsed: %v", err)
 	}
 }

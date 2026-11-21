@@ -110,3 +110,23 @@ func TestRankingByComputedRisk(t *testing.T) {
 		t.Errorf("ranking wrong: %+v", out[0].Risk)
 	}
 }
+
+// nmap may label a TLS port "http" while webcheck negotiated TLS on it. The finding's asset must carry the
+// negotiated scheme whichever tool's service record arrived first.
+func TestAssetServiceLabelPrefersNegotiatedHTTPS(t *testing.T) {
+	raw := []model.RawFinding{{Tool: "webcheck", Key: "web:missing-header:hsts", Title: "Missing HSTS", Host: "h", Port: 443, Severity: "low", Basis: model.BasisDirect, Evidence: "E-1"}}
+	nm := model.Service{Host: "h", Port: 443, State: "open", Name: "http", Tool: "nmap"}
+	wc := model.Service{Host: "h", Port: 443, State: "open", Name: "https", Tool: "webcheck"}
+	for name, order := range map[string][]model.Service{"nmap first": {nm, wc}, "webcheck first": {wc, nm}} {
+		out := run(raw, order)
+		if len(out) != 1 || len(out[0].Assets) != 1 || out[0].Assets[0].Service != "https" {
+			t.Errorf("%s: service label = %+v", name, out)
+		}
+	}
+	// a plain http web service on another port is untouched
+	out := run([]model.RawFinding{{Tool: "webcheck", Key: "k", Title: "t", Host: "h", Port: 8000, Severity: "low", Basis: model.BasisDirect}},
+		[]model.Service{{Host: "h", Port: 8000, State: "open", Name: "http-alt", Tool: "nmap"}, {Host: "h", Port: 8000, State: "open", Name: "http", Tool: "webcheck"}})
+	if out[0].Assets[0].Service != "http-alt" {
+		t.Errorf("non-TLS label changed: %q", out[0].Assets[0].Service)
+	}
+}

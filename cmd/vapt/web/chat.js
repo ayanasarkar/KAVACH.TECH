@@ -708,7 +708,7 @@ function palItems(q) {
     if ((a.findings || []).length) it.push({ t: 'Download the PDF report', s: '.pdf', run: () => { location.href = `/api/assessments/${S.id}/report.pdf`; } });
     if (a.phase === 'running') it.push({ t: 'Stop the run', s: 'cancels running steps', run: () => api(`/api/assessments/${S.id}/stop`, { method: 'POST' }).then(poll) });
   }
-  it.push({ t: 'Open the workbench', s: 'tiling view with 3D surface', run: () => { location.href = '/workbench'; } }, { t: 'Account and password', s: who() + ' · ' + (S.user ? S.user.role : ''), run: openAcct }, { t: 'Sign out', s: 'ends this session', run: signOut });
+  it.push({ t: 'Open the workbench', s: 'tiling view with 3D surface', run: () => { location.href = S.id ? '/workbench?id=' + encodeURIComponent(S.id) : '/workbench'; } }, { t: 'Account and password', s: who() + ' · ' + (S.user ? S.user.role : ''), run: openAcct }, { t: 'Sign out', s: 'ends this session', run: signOut });
   const lq = (q || '').toLowerCase();
   return it.filter((x) => !lq || (looksAddr(q) && x.t.startsWith('Check ')) || x.t.toLowerCase().includes(lq) || (x.s || '').toLowerCase().includes(lq));
 }

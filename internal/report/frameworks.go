@@ -108,3 +108,26 @@ func frameworkLine(cwes []string) string {
 	}
 	return out
 }
+
+// frameworkLists is frameworkLine's data in structured form, for machine-readable exports: the distinct MITRE
+// ATT&CK tactics ("TA0043 Reconnaissance") and NIST CSF 2.0 categories ("PR.PS Platform Security") for a finding's
+// CWEs, each sorted. Same table, same precision as the PDF; nothing is added that the PDF does not already claim.
+func frameworkLists(cwes []string) (tactics, csf []string) {
+	t := map[string]string{}
+	c := map[string]string{}
+	for _, cwe := range cwes {
+		if fw, ok := frameworkByCWE[strings.ToUpper(strings.TrimSpace(cwe))]; ok {
+			t[fw.tacticID] = fw.tacticName
+			c[fw.csfCat] = fw.csfName
+		}
+	}
+	for id, n := range t {
+		tactics = append(tactics, id+" "+n)
+	}
+	for id, n := range c {
+		csf = append(csf, id+" "+n)
+	}
+	sort.Strings(tactics)
+	sort.Strings(csf)
+	return tactics, csf
+}

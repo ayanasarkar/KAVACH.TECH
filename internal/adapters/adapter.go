@@ -61,6 +61,40 @@ func (j Job) dialer(timeout time.Duration) *net.Dialer {
 	return d
 }
 
+// lookupIP is the resolver pinnedAddr uses; a variable so tests can stand in for DNS.
+var lookupIP = net.LookupIP
+
+// pinnedAddr is the connect-time scope check for tools that run as a subprocess and resolve names themselves (nmap,
+// nikto). A name that was in scope when planned could otherwise be rebound between the guard's check and the tool's own
+// lookup. So the name is resolved here, every address goes through DialCheck, and the caller launches the tool against
+// the address that passed instead of the name. An IP literal is checked and returned as given. With no DialCheck the
+// host is returned unchanged. It fails closed: a name that does not resolve, or any address that is refused, is an error.
+func (j Job) pinnedAddr() (addr string, v6 bool, err error) {
+	if j.DialCheck == nil {
+		return j.Host, false, nil
+	}
+	if ip := net.ParseIP(j.Host); ip != nil {
+		if err := j.DialCheck(j.Host, ip); err != nil {
+			return "", false, err
+		}
+		return j.Host, ip.To4() == nil, nil
+	}
+	ips, lerr := lookupIP(j.Host)
+	if lerr != nil || len(ips) == 0 {
+		return "", false, fmt.Errorf("could not resolve %s for the connect-time scope check: %v", j.Host, lerr)
+	}
+	pick := ips[0]
+	for _, ip := range ips {
+		if err := j.DialCheck(j.Host, ip); err != nil {
+			return "", false, err
+		}
+		if pick.To4() == nil && ip.To4() != nil {
+			pick = ip // nmap scans one address; prefer IPv4
+		}
+	}
+	return pick.String(), pick.To4() == nil, nil
+}
+
 // Result is the raw outcome of a tool run.
 type Result struct {
 	Services []model.Service
@@ -172,6 +206,10 @@ func NormalizeKey(title, extra string) string {
 		}
 		return false
 	}
+	// A finding that names a non-HTTP protocol must never take a web:* key: "FTP server version match" is not the
+	// HTTP Server header, and "Telnet ... cleartext login" is not a web login form. Merging them would pool an FTP/Telnet
+	// banner finding with web findings and inherit their severity and confidence.
+	nonHTTP := has("ftp", "telnet", "ssh", "smtp", "imap", "pop3", "mysql", "postgres", "snmp", "rdp")
 	switch {
 	case has("x-frame-options", "clickjack", "frame-ancestors"):
 		return "web:missing-header:x-frame-options"
@@ -185,7 +223,7 @@ func NormalizeKey(title, extra string) string {
 		return "web:directory-listing"
 	case has("x-powered-by"):
 		return "web:version-disclosure:x-powered-by"
-	case has("server leaks", "server banner", "server header", "web server may reveal", "version disclosure", "server version"):
+	case !nonHTTP && has("server leaks", "server banner", "server header", "web server may reveal", "version disclosure", "server version"):
 		return "web:version-disclosure:server"
 	case has("httponly"):
 		return "web:cookie-httponly"
@@ -199,12 +237,12 @@ func NormalizeKey(title, extra string) string {
 		return "web:server-status"
 	case has("phpinfo"):
 		return "web:phpinfo"
-	case has("cleartext", "unencrypted", "plain text", "plaintext") && has("login", "password", "credential", "form"):
-		return "web:cleartext-credentials"
 	case has("telnet"):
 		return "net:cleartext:telnet"
 	case has("ftp") && has("cleartext", "unencrypted", "anonymous", "plain"):
 		return "net:cleartext:ftp"
+	case !nonHTTP && has("cleartext", "unencrypted", "plain text", "plaintext") && has("login", "password", "credential", "form"):
+		return "web:cleartext-credentials"
 	}
 	return ""
 }
