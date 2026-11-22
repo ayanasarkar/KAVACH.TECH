@@ -18,11 +18,11 @@ Evidence-Driven AI Assistant for Authorised Penetration Testing
 
 
 
-Hackathon : DataOps Innovation Hackathon 2026 — AI-Powered Unified VAPT Agent
+Hackathon  : DataOps Innovation Hackathon 2026 — AI-Powered Unified VAPT Agent
 
-Team      : gh0st_1n_4he_sYstem
 
-Author    : Ayana Sarkar (ayanasarkar31@gmail.com)
+
+Author    : Ayana Sarkar 
 
 Runtime   : Go 1.22+ (100% Standard Library — Zero External Go Dependencies)
 
