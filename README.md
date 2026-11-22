@@ -4,7 +4,7 @@
 [![Go Version](https://img.shields.io/badge/Go-1.22%2B-00ADD8?style=flat&logo=go)](https://golang.org)
 [![Dependencies](https://img.shields.io/badge/Dependencies-Zero%20(Stdlib%20Only)-success)](#licensing-assumptions-and-provenance)
 [![Hackathon](https://img.shields.io/badge/Hackathon-DataOps%20Innovation-blue)](#about)
-[![Team](https://img.shields.io/badge/Team-gh0st__1n__4he__sYstem-orange)](#team--author)
+
 
 ---
 
